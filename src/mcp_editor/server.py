@@ -41,6 +41,9 @@ from .timeline_ops import move_clip_in_project
 from .timeline_ops import split_clip_in_project
 from .timeline_ops import trim_clip_in_project
 from .timeline_ops import validate_timeline_for_project
+from .validation import validate_audio as validate_audio_impl
+from .validation import validate_delivery_package as validate_delivery_package_impl
+from .validation import validate_platform_outputs as validate_platform_outputs_impl
 from .validation import validate_render as validate_render_impl
 from .workflow import (
     build_timeline_for_project,
@@ -436,10 +439,53 @@ def render_all_variants(
 
 
 @app.tool()
-def validate_output(path: str, platform: str = "16:9", expected_duration: float | None = None) -> dict[str, object]:
-    """Validate a rendered video file."""
+def validate_output(
+    path: str,
+    platform: str = "16:9",
+    expected_duration: float | None = None,
+    expected_fps: float = 30.0,
+    check_black: bool = True,
+    check_silent: bool = True,
+    check_frozen: bool = True,
+) -> dict[str, object]:
+    """Validate a rendered video file with comprehensive checks (resolution, FPS, black frames, silence, freezes)."""
     try:
-        return validate_render_impl(path, Platform(platform), expected_duration=expected_duration)
+        return validate_render_impl(
+            path,
+            Platform(platform),
+            expected_duration=expected_duration,
+            expected_fps=expected_fps,
+            check_black=check_black,
+            check_silent=check_silent,
+            check_frozen=check_frozen,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def validate_audio(path: str, expected_duration: float | None = None) -> dict[str, object]:
+    """Validate the audio track of a rendered file (existence, codec, silence detection)."""
+    try:
+        return validate_audio_impl(path, expected_duration=expected_duration)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def validate_platform_outputs(project_id: str) -> dict[str, object]:
+    """Validate all rendered platform outputs for a project against their expected specs."""
+    try:
+        return validate_platform_outputs_impl(project_id)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def validate_delivery_package(project_id: str) -> dict[str, object]:
+    """Full delivery gate: validate renders, OTIO exports, and manifest completeness."""
+    try:
+        return validate_delivery_package_impl(project_id)
     except Exception as exc:
         return _error(exc)
 
