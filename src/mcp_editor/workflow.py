@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import time
 from pathlib import Path
 
 from .beat_sync import analyze_beats
@@ -8,10 +9,11 @@ from .beat_sync import apply_edit_plan as apply_beat_edit_plan
 from .beat_sync import plan_beat_synced_edit
 from .diagnostics import McpEditorError, WorkflowError, event, exception_issue, no_video_assets
 from .grading import GRADING_PRESETS, apply_grading_preset
+from .logging import ProjectLogger
 from .media import scan_assets
 from .projects import load_manifest, save_manifest, slugify
 from .render import render_manifest_summary, render_timeline
-from .schemas import Platform, ProjectManifest, RenderManifest, RenderedOutput
+from .schemas import Platform, ProjectManifest, RenderManifest, RenderedOutput, deterministic_project_id
 from .timeline import export_otio, make_simple_timeline_plan
 from .validation import validate_delivery_package, validate_render
 
@@ -71,14 +73,19 @@ def create_project(
     platforms: list[Platform] | None = None,
     prompt: str | None = None,
 ) -> ProjectManifest:
+    slug = slugify(name)
+    project_id = deterministic_project_id(slug, input_dir)
     manifest = ProjectManifest(
-        name=slugify(name),
+        project_id=project_id,
+        name=slug,
         input_dir=input_dir,
         music_path=music_path,
         platforms=platforms or [Platform.widescreen],
         prompt=prompt,
         assets=scan_assets(input_dir, include_audio=False),
     )
+    logger = ProjectLogger(project_id)
+    logger.info("create_project", "Project created", name=slug, input_dir=input_dir, asset_count=len(manifest.assets))
     save_manifest(manifest)
     return manifest
 
@@ -112,12 +119,16 @@ def render_and_validate_project(
     render_profile: str = "preview",
     dry_run: bool = False,
 ) -> ProjectManifest:
+    logger = ProjectLogger(manifest.project_id)
     plan = manifest.timelines.get(platform.value)
     if plan is None:
         manifest = build_timeline_for_project(manifest, platform)
         plan = manifest.timelines[platform.value]
 
+    t0 = time.monotonic()
     output = render_timeline(plan, render_profile=render_profile, dry_run=dry_run)
+    elapsed = time.monotonic() - t0
+
     if isinstance(output, RenderManifest):
         manifest.outputs[platform.value] = RenderedOutput(
             platform=platform,
@@ -129,17 +140,23 @@ def render_and_validate_project(
                 "render_manifest": render_manifest_summary(output),
             },
         )
+        logger.timed("render", f"Dry-run render planned for {platform.value}", elapsed, dry_run=True)
         save_manifest(manifest)
         return manifest
 
     expected_duration = sum(clip.duration for clip in plan.clips)
     validation = validate_render(output, platform, expected_duration=expected_duration)
+    ok = bool(validation["ok"])
     manifest.outputs[platform.value] = RenderedOutput(
         platform=platform,
         path=str(output),
-        ok=bool(validation["ok"]),
+        ok=ok,
         validation=validation,
     )
+    if ok:
+        logger.timed("render", f"Render completed for {platform.value}", elapsed, output=str(output))
+    else:
+        logger.warning("render", f"Render validation failed for {platform.value}", checks=validation.get("checks"))
     save_manifest(manifest)
     return manifest
 

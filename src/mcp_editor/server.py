@@ -8,6 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from .beat_sync import analyze_beats as analyze_beats_impl
 from .effects import apply_motion_effects as apply_motion_effects_impl
 from .grading import apply_grading_preset as apply_grading_preset_impl
+from .logging import get_project_log_summary
 from .grading import apply_lut as apply_lut_impl
 from .grading import inspect_lut as inspect_lut_impl
 from .grading import list_grading_presets as list_grading_presets_impl
@@ -525,6 +526,15 @@ def edit_video_from_prompt(
             render_profile=render_profile,
             dry_run=dry_run,
         )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def get_project_logs(project_id: str) -> dict[str, object]:
+    """Return structured log records for a project (errors, warnings, render timings)."""
+    try:
+        return get_project_log_summary(project_id)
     except Exception as exc:
         return _error(exc)
 

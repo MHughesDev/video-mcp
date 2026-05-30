@@ -4,7 +4,7 @@ This plan defines the intended build sequence for `mcp-editor`: a headless, loca
 
 ## Long-Term Completion Status
 
-Overall long-term application completion: **63%**
+Overall long-term application completion: **72%**
 
 This percentage is an engineering estimate of how much of the intended long-term product is implemented, tested, documented, and usable. It is not a calendar estimate.
 
@@ -27,6 +27,7 @@ Current state: **MVP foundation exists, but the full long-term video editing sys
 | End-to-end prompt workflow | Phase 9 implemented: full 9-step pipeline with footage probe, prompt-driven style/grade inference, grading integration, delivery validation, workflow status tool | 80% |
 | Integration tests with real media | Unit coverage expanded; real media fixtures not yet implemented | 20% |
 | GitHub publishing and release readiness | Not yet implemented | 0% |
+| Hardening and scale | Phase 10 implemented: structured JSON logging (ProjectLogger), retry with backoff in render pipeline, deterministic project IDs (SHA-256 of name+input_dir), timing records in RenderManifest, cross-platform POSIX path helper, get_project_logs MCP tool | 60% |
 
 Update this section whenever a major phase lands. Keep the percentage conservative: only count behavior that is implemented, tested, and documented enough for another coding agent to use.
 

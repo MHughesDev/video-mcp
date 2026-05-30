@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -131,6 +132,7 @@ class RenderManifest(BaseModel):
     segment_paths: list[str] = Field(default_factory=list)
     concat_file: str | None = None
     dry_run: bool = False
+    timing: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ProjectManifest(BaseModel):
@@ -149,3 +151,18 @@ class ProjectManifest(BaseModel):
 
 def as_path(value: str | Path) -> Path:
     return Path(value).expanduser().resolve()
+
+
+def posix_path(value: str | Path) -> str:
+    """Return a POSIX forward-slash path string for cross-platform manifest storage."""
+    return Path(value).as_posix()
+
+
+def deterministic_project_id(name: str, input_dir: str) -> str:
+    """Return a stable 12-char hex ID derived from project name and input directory.
+
+    Calling create_project twice with the same name + input_dir returns the same ID,
+    preventing duplicate project directories on re-runs.
+    """
+    key = f"{name.strip().lower()}::{Path(input_dir).as_posix().lower()}"
+    return hashlib.sha256(key.encode()).hexdigest()[:12]
