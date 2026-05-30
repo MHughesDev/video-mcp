@@ -6,6 +6,7 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from .beat_sync import analyze_beats as analyze_beats_impl
+from .diagnostics import failed_tool_result
 from .media import probe_media as probe_media_impl
 from .media import scan_assets as scan_assets_impl
 from .projects import load_manifest, save_manifest
@@ -34,20 +35,27 @@ def _platforms(values: list[str] | None) -> list[Platform]:
 
 
 def _error(exc: Exception) -> dict[str, object]:
-    return {"ok": False, "error": str(exc), "error_type": exc.__class__.__name__}
+    return failed_tool_result(exc)
 
 
 @app.tool()
 def scan_assets(input_dir: str = "data/input") -> dict[str, object]:
     """Scan a directory for local video assets and return FFprobe metadata."""
-    assets = scan_assets_impl(input_dir, include_audio=False)
-    return {"ok": True, "input_dir": str(Path(input_dir)), "assets": [asset.model_dump() for asset in assets]}
+    try:
+        assets = scan_assets_impl(input_dir, include_audio=False)
+        return {"ok": True, "input_dir": str(Path(input_dir)), "assets": [asset.model_dump() for asset in assets]}
+    except Exception as exc:
+        return _error(exc)
 
 
 @app.tool()
 def probe_media(path: str) -> dict[str, object]:
     """Probe one media file with FFprobe."""
-    return probe_media_impl(path).model_dump()
+    try:
+        probe = probe_media_impl(path)
+        return probe.model_dump()
+    except Exception as exc:
+        return _error(exc)
 
 
 @app.tool()

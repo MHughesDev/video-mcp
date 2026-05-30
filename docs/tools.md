@@ -2,6 +2,52 @@
 
 This is the first MVP tool surface for `mcp-editor`. The server is intentionally deterministic: agents provide creative direction, and this server performs local media operations, timeline export, rendering, and validation.
 
+## Failure Contract
+
+Every MCP tool should return a structured failure instead of an opaque exception:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "missing_dependency",
+    "message": "ffmpeg was not found on PATH.",
+    "suggested_fix": "Install FFmpeg and make sure both ffmpeg and ffprobe are available on PATH.",
+    "details": {
+      "binary": "ffmpeg"
+    }
+  }
+}
+```
+
+Long-running workflow tools may also return callback-style events:
+
+```json
+{
+  "ok": false,
+  "events": [
+    {"stage": "create_project", "status": "completed"},
+    {"stage": "create_timeline", "status": "started"},
+    {"stage": "workflow", "status": "failed"}
+  ],
+  "error": {
+    "code": "no_video_assets",
+    "message": "No usable video assets were found in data/input."
+  }
+}
+```
+
+Common error codes:
+
+- `missing_dependency`: `ffmpeg` or `ffprobe` is not installed or not on `PATH`.
+- `media_not_found`: a requested media file does not exist.
+- `project_not_found`: a requested project manifest does not exist.
+- `no_video_assets`: no usable source footage was found.
+- `command_failed`: FFmpeg or FFprobe returned a non-zero exit code. Details include command, return code, stdout, and stderr.
+- `invalid_probe_output`: FFprobe did not return parseable JSON.
+- `invalid_request`: the tool arguments are invalid.
+- `internal_error`: unexpected server-side failure.
+
 ## `scan_assets`
 
 Scan a local input directory for video assets and return FFprobe metadata.

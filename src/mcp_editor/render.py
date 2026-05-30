@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from .config import output_dir
+from .diagnostics import DiagnosticIssue, McpEditorError, command_failed
 from .media import probe_media, require_binary
 from .projects import project_dir
 from .schemas import PLATFORM_DIMENSIONS, Platform, TimelinePlan, as_path
@@ -12,6 +13,13 @@ from .schemas import PLATFORM_DIMENSIONS, Platform, TimelinePlan, as_path
 def _platform_filter(platform: Platform) -> str:
     width, height = PLATFORM_DIMENSIONS[platform]
     return f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"
+
+
+def _run_command(stage: str, cmd: list[str]) -> None:
+    try:
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as exc:
+        raise command_failed(stage, cmd, exc) from exc
 
 
 def render_timeline(
@@ -33,7 +41,20 @@ def render_timeline(
         source = as_path(clip.source)
         probe = probe_media(source)
         if not probe.ok or not probe.has_video:
-            raise ValueError(f"cannot render non-video source: {source}")
+            raise McpEditorError(
+                issue=DiagnosticIssue(
+                    code=probe.error_code or "invalid_media",
+                    message=f"Cannot render source as video: {source}",
+                    suggested_fix=probe.suggested_fix or "Use a valid video file with a readable video stream.",
+                    details={
+                        "source": str(source),
+                        "probe_ok": probe.ok,
+                        "has_video": probe.has_video,
+                        "probe_error": probe.error,
+                        "probe_details": probe.details,
+                    },
+                )
+            )
 
         segment = project_work_dir / f"segment_{index:04d}.mp4"
         cmd = [
@@ -67,7 +88,7 @@ def render_timeline(
             "yuv420p",
             str(segment),
         ]
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        _run_command(f"render_segment_{index}", cmd)
         segment_paths.append(segment)
 
     concat_file = project_work_dir / "concat.txt"
@@ -91,7 +112,7 @@ def render_timeline(
         "copy",
         str(output),
     ]
-    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    _run_command("concat_segments", cmd)
 
     if not output.exists():
         raise RuntimeError("render command completed without producing output")

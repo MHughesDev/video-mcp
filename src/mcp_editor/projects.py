@@ -4,6 +4,7 @@ import json
 import re
 from pathlib import Path
 
+from .diagnostics import project_not_found
 from .config import projects_dir
 from .schemas import ProjectManifest
 
@@ -31,5 +32,7 @@ def save_manifest(manifest: ProjectManifest) -> Path:
 
 def load_manifest(project_id: str) -> ProjectManifest:
     path = manifest_path(project_id)
+    if not path.exists():
+        raise project_not_found(project_id, str(path))
     data = json.loads(path.read_text(encoding="utf-8"))
     return ProjectManifest.model_validate(data)

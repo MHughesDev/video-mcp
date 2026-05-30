@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .diagnostics import command_failed, media_not_found, missing_dependency
 from .schemas import MediaProbe, MediaStream, as_path
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".mkv", ".webm", ".avi"}
@@ -14,9 +15,7 @@ AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"}
 def require_binary(name: str) -> str:
     binary = shutil.which(name)
     if not binary:
-        raise RuntimeError(
-            f"{name} was not found on PATH. Install FFmpeg and ensure {name} is available."
-        )
+        raise missing_dependency(name)
     return binary
 
 
@@ -41,12 +40,30 @@ def _int_or_none(value: object) -> int | None:
 def probe_media(path: str | Path) -> MediaProbe:
     media_path = as_path(path)
     if not media_path.exists():
-        return MediaProbe(path=str(media_path), exists=False, ok=False, error="file not found")
+        issue = media_not_found(str(media_path))
+        return MediaProbe(
+            path=str(media_path),
+            exists=False,
+            ok=False,
+            error=issue.message,
+            error_code=issue.code,
+            suggested_fix=issue.suggested_fix,
+            details=issue.details,
+        )
 
     try:
         ffprobe = require_binary("ffprobe")
-    except RuntimeError as exc:
-        return MediaProbe(path=str(media_path), exists=True, ok=False, error=str(exc))
+    except Exception as exc:
+        issue = getattr(exc, "issue", None)
+        return MediaProbe(
+            path=str(media_path),
+            exists=True,
+            ok=False,
+            error=str(exc),
+            error_code=getattr(issue, "code", "dependency_error"),
+            suggested_fix=getattr(issue, "suggested_fix", None),
+            details=getattr(issue, "details", {}),
+        )
 
     cmd = [
         ffprobe,
@@ -61,8 +78,27 @@ def probe_media(path: str | Path) -> MediaProbe:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         payload = json.loads(result.stdout)
-    except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
-        return MediaProbe(path=str(media_path), exists=True, ok=False, error=str(exc))
+    except subprocess.CalledProcessError as exc:
+        issue = command_failed("ffprobe", cmd, exc).issue
+        return MediaProbe(
+            path=str(media_path),
+            exists=True,
+            ok=False,
+            error=issue.message,
+            error_code=issue.code,
+            suggested_fix=issue.suggested_fix,
+            details=issue.details,
+        )
+    except json.JSONDecodeError as exc:
+        return MediaProbe(
+            path=str(media_path),
+            exists=True,
+            ok=False,
+            error="ffprobe returned invalid JSON",
+            error_code="invalid_probe_output",
+            suggested_fix="Run ffprobe manually for this file and inspect the output.",
+            details={"exception": str(exc), "command": cmd},
+        )
 
     streams = [
         MediaStream(

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .beat_sync import analyze_beats
+from .diagnostics import McpEditorError, WorkflowError, event, exception_issue, no_video_assets
 from .media import scan_assets
 from .projects import save_manifest, slugify
 from .render import render_timeline
@@ -36,6 +37,9 @@ def build_timeline_for_project(
     target_duration: float = 30,
 ) -> ProjectManifest:
     video_assets = [asset.path for asset in manifest.assets if asset.ok and asset.has_video]
+    if not video_assets:
+        raise McpEditorError(no_video_assets(manifest.input_dir))
+
     plan = make_simple_timeline_plan(
         project_id=manifest.project_id,
         asset_paths=video_assets,
@@ -83,25 +87,76 @@ def edit_video_from_prompt(
     render: bool = True,
 ) -> dict[str, object]:
     selected_platforms = platforms or [Platform.widescreen]
-    manifest = create_project(
-        name=project_name,
-        input_dir=input_dir,
-        music_path=music_path,
-        platforms=selected_platforms,
-        prompt=prompt,
-    )
+    events: list[dict[str, object]] = []
 
-    beat_report = analyze_beats(music_path) if music_path else None
-    for platform in selected_platforms:
-        manifest = build_timeline_for_project(manifest, platform, target_duration=target_duration)
-        if render:
-            manifest = render_and_validate_project(manifest, platform)
+    try:
+        events.append(event("create_project", "started", input_dir=input_dir))
+        manifest = create_project(
+            name=project_name,
+            input_dir=input_dir,
+            music_path=music_path,
+            platforms=selected_platforms,
+            prompt=prompt,
+        )
+        events.append(
+            event(
+                "create_project",
+                "completed",
+                project_id=manifest.project_id,
+                asset_count=len(manifest.assets),
+                usable_video_count=len([asset for asset in manifest.assets if asset.ok and asset.has_video]),
+            )
+        )
 
-    return {
-        "ok": all(output.ok for output in manifest.outputs.values()) if render else True,
-        "project_id": manifest.project_id,
-        "manifest_path": str(save_manifest(manifest)),
-        "beat_report": beat_report,
-        "timelines": {key: plan.otio_path for key, plan in manifest.timelines.items()},
-        "outputs": {key: output.model_dump() for key, output in manifest.outputs.items()},
-    }
+        beat_report = None
+        if music_path:
+            events.append(event("analyze_beats", "started", music_path=music_path))
+            beat_report = analyze_beats(music_path)
+            events.append(
+                event(
+                    "analyze_beats",
+                    "completed" if beat_report.get("ok") else "failed",
+                    beat_count=beat_report.get("beat_count"),
+                    error=beat_report.get("error"),
+                )
+            )
+
+        for platform in selected_platforms:
+            events.append(event("create_timeline", "started", platform=platform.value))
+            manifest = build_timeline_for_project(manifest, platform, target_duration=target_duration)
+            events.append(
+                event(
+                    "create_timeline",
+                    "completed",
+                    platform=platform.value,
+                    otio_path=manifest.timelines[platform.value].otio_path,
+                    clip_count=len(manifest.timelines[platform.value].clips),
+                )
+            )
+
+            if render:
+                events.append(event("render_project", "started", platform=platform.value))
+                manifest = render_and_validate_project(manifest, platform)
+                output = manifest.outputs[platform.value]
+                events.append(
+                    event(
+                        "render_project",
+                        "completed" if output.ok else "failed",
+                        platform=platform.value,
+                        output_path=output.path,
+                        validation=output.validation,
+                    )
+                )
+
+        return {
+            "ok": all(output.ok for output in manifest.outputs.values()) if render else True,
+            "project_id": manifest.project_id,
+            "manifest_path": str(save_manifest(manifest)),
+            "events": events,
+            "beat_report": beat_report,
+            "timelines": {key: plan.otio_path for key, plan in manifest.timelines.items()},
+            "outputs": {key: output.model_dump() for key, output in manifest.outputs.items()},
+        }
+    except Exception as exc:
+        events.append(event("workflow", "failed", error=exception_issue(exc).model_dump()))
+        raise WorkflowError(exception_issue(exc), events) from exc

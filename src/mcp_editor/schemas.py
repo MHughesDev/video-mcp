@@ -41,6 +41,9 @@ class MediaProbe(BaseModel):
     bit_rate: int | None = None
     streams: list[MediaStream] = Field(default_factory=list)
     error: str | None = None
+    error_code: str | None = None
+    suggested_fix: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def has_video(self) -> bool:

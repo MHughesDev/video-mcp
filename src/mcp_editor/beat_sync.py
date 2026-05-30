@@ -4,13 +4,15 @@ from pathlib import Path
 
 import librosa
 
+from .diagnostics import media_not_found
 from .schemas import as_path
 
 
 def analyze_beats(music_path: str | Path) -> dict[str, object]:
     path = as_path(music_path)
     if not path.exists():
-        return {"ok": False, "path": str(path), "error": "file not found"}
+        issue = media_not_found(str(path))
+        return {"ok": False, "path": str(path), "error": issue.model_dump()}
 
     y, sr = librosa.load(str(path), sr=None, mono=True)
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
