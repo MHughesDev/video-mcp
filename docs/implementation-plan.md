@@ -4,7 +4,7 @@ This plan defines the intended build sequence for `mcp-editor`: a headless, loca
 
 ## Long-Term Completion Status
 
-Overall long-term application completion: **57%**
+Overall long-term application completion: **63%**
 
 This percentage is an engineering estimate of how much of the intended long-term product is implemented, tested, documented, and usable. It is not a calendar estimate.
 
@@ -24,7 +24,7 @@ Current state: **MVP foundation exists, but the full long-term video editing sys
 | Effects engine | Phase 6 implemented: speed_ramp, zoom_punch, smash_cut, reframe, motion_effects, remove_clip_effect; filter integration in render pipeline | 65% |
 | LUT grading system | Phase 7 implemented: list_luts, inspect_lut, apply_lut, apply_grading_preset, render_with_grade, list_grading_presets; grade effect baked into render filter chain | 70% |
 | Self-validation gate | Phase 8 implemented: validate_render (FPS, resolution, black/silence/freeze), validate_audio, validate_platform_outputs, validate_delivery_package (OTIO + manifest checks) | 85% |
-| End-to-end prompt workflow | MVP implemented with beat-plan path and dry-run render support | 30% |
+| End-to-end prompt workflow | Phase 9 implemented: full 9-step pipeline with footage probe, prompt-driven style/grade inference, grading integration, delivery validation, workflow status tool | 80% |
 | Integration tests with real media | Unit coverage expanded; real media fixtures not yet implemented | 20% |
 | GitHub publishing and release readiness | Not yet implemented | 0% |
 

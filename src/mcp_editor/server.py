@@ -49,6 +49,7 @@ from .workflow import (
     build_timeline_for_project,
     create_project as create_project_impl,
     edit_video_from_prompt as edit_video_from_prompt_impl,
+    get_workflow_status as get_workflow_status_impl,
     render_all_variants as render_all_variants_impl,
     render_and_validate_project,
     render_platform_variant as render_platform_variant_impl,
@@ -498,11 +499,18 @@ def edit_video_from_prompt(
     music_path: str | None = None,
     platforms: list[str] | None = None,
     target_duration: float = 30,
+    style: str | None = None,
+    grade: str | None = None,
     render: bool = True,
     render_profile: str = "preview",
     dry_run: bool = False,
 ) -> dict[str, object]:
-    """Run the MVP end-to-end edit workflow from a natural language request."""
+    """
+    Full autonomous edit pipeline from a natural language prompt.
+    Infers pacing style and grading preset from prompt keywords.
+    Steps: scan → probe footage → analyze music → build edit plan →
+    apply grade → render variants → export OTIO → validate delivery.
+    """
     try:
         return edit_video_from_prompt_impl(
             prompt=prompt,
@@ -511,10 +519,21 @@ def edit_video_from_prompt(
             music_path=music_path,
             platforms=_platforms(platforms),
             target_duration=target_duration,
+            style=style,
+            grade=grade,
             render=render,
             render_profile=render_profile,
             dry_run=dry_run,
         )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def get_workflow_status(project_id: str) -> dict[str, object]:
+    """Return a pipeline-stage checklist showing what's done and what's next for a project."""
+    try:
+        return get_workflow_status_impl(project_id)
     except Exception as exc:
         return _error(exc)
 
