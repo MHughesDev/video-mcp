@@ -1,0 +1,107 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from .beat_sync import analyze_beats
+from .media import scan_assets
+from .projects import save_manifest, slugify
+from .render import render_timeline
+from .schemas import Platform, ProjectManifest, RenderedOutput
+from .timeline import export_otio, make_simple_timeline_plan
+from .validation import validate_render
+
+
+def create_project(
+    name: str,
+    input_dir: str = "data/input",
+    music_path: str | None = None,
+    platforms: list[Platform] | None = None,
+    prompt: str | None = None,
+) -> ProjectManifest:
+    manifest = ProjectManifest(
+        name=slugify(name),
+        input_dir=input_dir,
+        music_path=music_path,
+        platforms=platforms or [Platform.widescreen],
+        prompt=prompt,
+        assets=scan_assets(input_dir, include_audio=False),
+    )
+    save_manifest(manifest)
+    return manifest
+
+
+def build_timeline_for_project(
+    manifest: ProjectManifest,
+    platform: Platform,
+    target_duration: float = 30,
+) -> ProjectManifest:
+    video_assets = [asset.path for asset in manifest.assets if asset.ok and asset.has_video]
+    plan = make_simple_timeline_plan(
+        project_id=manifest.project_id,
+        asset_paths=video_assets,
+        platform=platform,
+        target_duration=target_duration,
+        music_path=manifest.music_path,
+    )
+    otio_path = export_otio(plan)
+    plan.otio_path = str(otio_path)
+    manifest.timelines[platform.value] = plan
+    save_manifest(manifest)
+    return manifest
+
+
+def render_and_validate_project(
+    manifest: ProjectManifest,
+    platform: Platform,
+    render_profile: str = "preview",
+) -> ProjectManifest:
+    plan = manifest.timelines.get(platform.value)
+    if plan is None:
+        manifest = build_timeline_for_project(manifest, platform)
+        plan = manifest.timelines[platform.value]
+
+    output = render_timeline(plan, render_profile=render_profile)
+    expected_duration = sum(clip.duration for clip in plan.clips)
+    validation = validate_render(output, platform, expected_duration=expected_duration)
+    manifest.outputs[platform.value] = RenderedOutput(
+        platform=platform,
+        path=str(output),
+        ok=bool(validation["ok"]),
+        validation=validation,
+    )
+    save_manifest(manifest)
+    return manifest
+
+
+def edit_video_from_prompt(
+    prompt: str,
+    project_name: str = "mvp-edit",
+    input_dir: str = "data/input",
+    music_path: str | None = None,
+    platforms: list[Platform] | None = None,
+    target_duration: float = 30,
+    render: bool = True,
+) -> dict[str, object]:
+    selected_platforms = platforms or [Platform.widescreen]
+    manifest = create_project(
+        name=project_name,
+        input_dir=input_dir,
+        music_path=music_path,
+        platforms=selected_platforms,
+        prompt=prompt,
+    )
+
+    beat_report = analyze_beats(music_path) if music_path else None
+    for platform in selected_platforms:
+        manifest = build_timeline_for_project(manifest, platform, target_duration=target_duration)
+        if render:
+            manifest = render_and_validate_project(manifest, platform)
+
+    return {
+        "ok": all(output.ok for output in manifest.outputs.values()) if render else True,
+        "project_id": manifest.project_id,
+        "manifest_path": str(save_manifest(manifest)),
+        "beat_report": beat_report,
+        "timelines": {key: plan.otio_path for key, plan in manifest.timelines.items()},
+        "outputs": {key: output.model_dump() for key, output in manifest.outputs.items()},
+    }
