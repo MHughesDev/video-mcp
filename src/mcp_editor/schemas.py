@@ -54,12 +54,18 @@ class MediaProbe(BaseModel):
         return any(stream.codec_type == "audio" for stream in self.streams)
 
 
+class ClipEffect(BaseModel):
+    effect_type: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
 class TimelineClip(BaseModel):
     clip_id: str = Field(default_factory=lambda: uuid4().hex[:12])
     source: str
     start: float = 0
     duration: float
     label: str | None = None
+    effects: list[ClipEffect] = Field(default_factory=list)
 
 
 class TimelineTransition(BaseModel):

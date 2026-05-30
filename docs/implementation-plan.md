@@ -4,7 +4,7 @@ This plan defines the intended build sequence for `mcp-editor`: a headless, loca
 
 ## Long-Term Completion Status
 
-Overall long-term application completion: **37%**
+Overall long-term application completion: **44%**
 
 This percentage is an engineering estimate of how much of the intended long-term product is implemented, tested, documented, and usable. It is not a calendar estimate.
 
@@ -21,7 +21,7 @@ Current state: **MVP foundation exists, but the full long-term video editing sys
 | Beat analysis | MVP implemented with planner integration | 35% |
 | Beat-synced edit planning | Deterministic Phase 4 planner implemented | 35% |
 | FFmpeg render engine | Phase 5 profiles, dry-run planning, and variant orchestration implemented; real execution still needs FFmpeg | 45% |
-| Effects engine | Not yet implemented | 0% |
+| Effects engine | Phase 6 implemented: speed_ramp, zoom_punch, smash_cut, reframe, motion_effects, remove_clip_effect; filter integration in render pipeline | 65% |
 | LUT grading system | Not yet implemented | 0% |
 | Self-validation gate | MVP render checks plus timeline validation implemented | 20% |
 | End-to-end prompt workflow | MVP implemented with beat-plan path and dry-run render support | 30% |

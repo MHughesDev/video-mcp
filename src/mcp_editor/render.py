@@ -6,6 +6,7 @@ from typing import Any
 
 from .config import output_dir
 from .diagnostics import DiagnosticIssue, McpEditorError, command_failed
+from .effects import build_clip_af, build_clip_vf, source_read_duration
 from .media import probe_media, require_binary
 from .projects import project_dir
 from .schemas import PLATFORM_DIMENSIONS, Platform, RenderCommand, RenderManifest, TimelinePlan, as_path
@@ -16,11 +17,6 @@ RENDER_PROFILES: dict[str, dict[str, str]] = {
     "standard": {"crf": "23", "preset": "fast", "audio_bitrate": "160k"},
     "high": {"crf": "18", "preset": "slow", "audio_bitrate": "192k"},
 }
-
-
-def _platform_filter(platform: Platform) -> str:
-    width, height = PLATFORM_DIMENSIONS[platform]
-    return f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"
 
 
 def _run_command(stage: str, cmd: list[str]) -> None:
@@ -77,25 +73,28 @@ def plan_render_timeline(
                 )
 
         segment = project_work_dir / f"segment_{index:04d}.mp4"
+        read_duration = source_read_duration(clip)
         cmd = [
             ffmpeg_binary,
             "-y",
             "-ss",
             str(max(0, clip.start)),
             "-t",
-            str(max(0.1, clip.duration)),
+            str(max(0.1, read_duration)),
             "-i",
             str(source),
             "-map",
             "0:v:0",
         ]
+        extra_af = build_clip_af(clip)
         if has_audio:
-            cmd += ["-map", "0:a:0?", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", profile["audio_bitrate"]]
+            af_chain = ",".join(["aresample=async=1"] + extra_af)
+            cmd += ["-map", "0:a:0?", "-af", af_chain, "-c:a", "aac", "-b:a", profile["audio_bitrate"]]
         else:
             cmd += ["-an"]
         cmd += [
             "-vf",
-            _platform_filter(plan.platform),
+            build_clip_vf(clip, plan.platform),
             "-r",
             "30",
             "-c:v",

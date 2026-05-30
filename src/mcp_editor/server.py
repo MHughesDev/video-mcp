@@ -6,6 +6,12 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from .beat_sync import analyze_beats as analyze_beats_impl
+from .effects import apply_motion_effects as apply_motion_effects_impl
+from .effects import apply_reframe as apply_reframe_impl
+from .effects import apply_smash_cut as apply_smash_cut_impl
+from .effects import apply_speed_ramp as apply_speed_ramp_impl
+from .effects import apply_zoom_punch as apply_zoom_punch_impl
+from .effects import remove_clip_effect as remove_clip_effect_impl
 from .beat_sync import apply_edit_plan as apply_edit_plan_impl
 from .beat_sync import plan_beat_synced_edit as plan_beat_synced_edit_impl
 from .beat_sync import suggest_cut_points as suggest_cut_points_impl
@@ -456,6 +462,134 @@ def edit_video_from_prompt(
             render=render,
             render_profile=render_profile,
             dry_run=dry_run,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_speed_ramp(
+    project_id: str,
+    speed: float,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a speed ramp to a clip. speed > 1 is faster, speed < 1 is slower."""
+    try:
+        return apply_speed_ramp_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            speed=speed,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_zoom_punch(
+    project_id: str,
+    zoom: float = 1.2,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a punch zoom to a clip. zoom is a scale multiplier > 1.0 (e.g. 1.2 = 20% in)."""
+    try:
+        return apply_zoom_punch_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            zoom=zoom,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_smash_cut(
+    project_id: str,
+    from_clip_id: str,
+    to_clip_id: str,
+    platform: str = "16:9",
+) -> dict[str, object]:
+    """Remove any transition between two adjacent clips, making it a hard cut."""
+    try:
+        return apply_smash_cut_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            from_clip_id=from_clip_id,
+            to_clip_id=to_clip_id,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_reframe(
+    project_id: str,
+    x_pct: float = 0.0,
+    y_pct: float = 0.0,
+    crop_pct: float = 0.9,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Reframe a clip by cropping with a center offset. x_pct/y_pct shift the crop window."""
+    try:
+        return apply_reframe_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            x_pct=x_pct,
+            y_pct=y_pct,
+            crop_pct=crop_pct,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_motion_effects(
+    project_id: str,
+    effects: list[dict],
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply multiple effects to a single clip in one call. Each effect needs effect_type and params."""
+    try:
+        return apply_motion_effects_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            effects=effects,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def remove_clip_effect(
+    project_id: str,
+    effect_type: str,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Remove a specific effect from a clip by effect_type."""
+    try:
+        return remove_clip_effect_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            effect_type=effect_type,
+            clip_id=clip_id,
+            index=index,
         )
     except Exception as exc:
         return _error(exc)
