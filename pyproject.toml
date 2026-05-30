@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-editor"
+version = "0.1.0"
+description = "Headless MCP video editing server for local AI agent workflows."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "opentimelineio>=0.17",
+  "mcp>=1.0",
+  "librosa>=0.10",
+  "ffmpeg-python>=0.2",
+  "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
