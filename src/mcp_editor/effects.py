@@ -7,7 +7,7 @@ from .schemas import ClipEffect, Platform, TimelineClip, TimelinePlan
 from .timeline import find_clip_index
 
 
-SUPPORTED_EFFECTS = {"speed_ramp", "zoom_punch", "reframe", "motion_blur"}
+SUPPORTED_EFFECTS = {"speed_ramp", "zoom_punch", "reframe", "motion_blur", "grade"}
 
 EXTENDED_TRANSITION_TYPES = {"crossfade", "whip_pan", "flash_cut", "glitch_cut", "fade_to_black"}
 
@@ -47,6 +47,14 @@ def build_clip_vf(clip: TimelineClip, platform: Platform) -> str:
             parts.append(f"setpts=PTS/{speed}")
         elif effect.effect_type == "motion_blur":
             parts.append("tblend=all_mode=average")
+
+    # Grade effect is applied after geometric transforms but before platform scaling.
+    for effect in clip.effects:
+        if effect.effect_type == "grade":
+            from .grading import build_grade_vf
+            grade_filters = build_grade_vf(effect)
+            if grade_filters:
+                parts.append(grade_filters)
 
     parts.append(platform_filter)
     return ",".join(parts)

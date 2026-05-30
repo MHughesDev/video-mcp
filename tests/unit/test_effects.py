@@ -103,4 +103,4 @@ class TestSourceReadDuration:
 
 class TestSupportedEffects:
     def test_expected_effects_present(self):
-        assert {"speed_ramp", "zoom_punch", "reframe", "motion_blur"} == SUPPORTED_EFFECTS
+        assert {"speed_ramp", "zoom_punch", "reframe", "motion_blur", "grade"} == SUPPORTED_EFFECTS

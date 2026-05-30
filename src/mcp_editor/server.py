@@ -7,6 +7,12 @@ from mcp.server.fastmcp import FastMCP
 
 from .beat_sync import analyze_beats as analyze_beats_impl
 from .effects import apply_motion_effects as apply_motion_effects_impl
+from .grading import apply_grading_preset as apply_grading_preset_impl
+from .grading import apply_lut as apply_lut_impl
+from .grading import inspect_lut as inspect_lut_impl
+from .grading import list_grading_presets as list_grading_presets_impl
+from .grading import list_luts as list_luts_impl
+from .grading import render_with_grade as render_with_grade_impl
 from .effects import apply_reframe as apply_reframe_impl
 from .effects import apply_smash_cut as apply_smash_cut_impl
 from .effects import apply_speed_ramp as apply_speed_ramp_impl
@@ -590,6 +596,94 @@ def remove_clip_effect(
             effect_type=effect_type,
             clip_id=clip_id,
             index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def list_luts() -> dict[str, object]:
+    """List all .cube LUT files available in data/luts/."""
+    try:
+        return list_luts_impl()
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def inspect_lut(name_or_path: str) -> dict[str, object]:
+    """Inspect a .cube LUT file and return its metadata (size, type, domain)."""
+    try:
+        return inspect_lut_impl(name_or_path)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_lut(
+    project_id: str,
+    lut_name: str,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a .cube LUT grade to a clip (or all clips if no clip_id/index given)."""
+    try:
+        return apply_lut_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            lut_name=lut_name,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def list_grading_presets() -> dict[str, object]:
+    """List built-in grading presets (cinematic, vivid, flat, bw, warm, cool)."""
+    try:
+        return list_grading_presets_impl()
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_grading_preset(
+    project_id: str,
+    preset: str,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a named grading preset to a clip or all clips in a timeline."""
+    try:
+        return apply_grading_preset_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            preset=preset,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def render_with_grade(
+    project_id: str,
+    platform: str = "16:9",
+    render_profile: str = "preview",
+    dry_run: bool = False,
+) -> dict[str, object]:
+    """Render a timeline with all grading effects baked into the FFmpeg filter chain."""
+    try:
+        return render_with_grade_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            render_profile=render_profile,
+            dry_run=dry_run,
         )
     except Exception as exc:
         return _error(exc)
