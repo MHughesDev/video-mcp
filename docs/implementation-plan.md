@@ -4,7 +4,7 @@ This plan defines the intended build sequence for `mcp-editor`: a headless, loca
 
 ## Long-Term Completion Status
 
-Overall long-term application completion: **18%**
+Overall long-term application completion: **25%**
 
 This percentage is an engineering estimate of how much of the intended long-term product is implemented, tested, documented, and usable. It is not a calendar estimate.
 
@@ -17,15 +17,15 @@ Current state: **MVP foundation exists, but the full long-term video editing sys
 | Structured errors and workflow callbacks | Implemented | 80% |
 | Media scanning and probing | Phase 2 inspection tools implemented | 60% |
 | Project manifest model | MVP implemented with inspection support | 30% |
-| Timeline and OTIO export | MVP implemented | 20% |
+| Timeline and OTIO export | Phase 3 edit operations implemented | 60% |
 | Beat analysis | MVP implemented | 15% |
 | Beat-synced edit planning | Not yet implemented | 0% |
 | FFmpeg render engine | MVP implemented, blocked locally until FFmpeg is installed | 20% |
 | Effects engine | Not yet implemented | 0% |
 | LUT grading system | Not yet implemented | 0% |
-| Self-validation gate | MVP implemented | 15% |
+| Self-validation gate | MVP render checks plus timeline validation implemented | 20% |
 | End-to-end prompt workflow | MVP implemented | 15% |
-| Integration tests with real media | Unit coverage added; real media fixtures not yet implemented | 10% |
+| Integration tests with real media | Unit coverage expanded; real media fixtures not yet implemented | 15% |
 | GitHub publishing and release readiness | Not yet implemented | 0% |
 
 Update this section whenever a major phase lands. Keep the percentage conservative: only count behavior that is implemented, tested, and documented enough for another coding agent to use.

@@ -256,6 +256,123 @@ Returns:
 - `timeline`
 - `manifest_path`
 
+## `add_clip`
+
+Add a clip to a project timeline and refresh the OTIO export.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `source`: local media file path.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+- `start`: source start time in seconds. Defaults to `0`.
+- `duration`: timeline clip duration in seconds. Defaults to `4`.
+- `label`: optional clip label.
+- `index`: optional insertion index. Appends when omitted.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `platform`
+- `timeline`
+- `validation`
+- `otio_path`
+- `manifest_path`
+
+## `trim_clip`
+
+Trim a clip by `clip_id` or zero-based `index` and refresh the OTIO export.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+- `clip_id`: optional clip ID.
+- `index`: optional clip index.
+- `start`: optional new source start time in seconds.
+- `duration`: optional new duration in seconds.
+
+Returns the same shape as `add_clip`.
+
+## `split_clip`
+
+Split a clip into two timeline clips and refresh the OTIO export.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `split_at`: split point in seconds relative to the clip start.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+- `clip_id`: optional clip ID.
+- `index`: optional clip index.
+
+Returns the same shape as `add_clip`.
+
+## `move_clip`
+
+Move a clip within a timeline and refresh the OTIO export.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `from_index`: zero-based source index.
+- `to_index`: zero-based destination index.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+
+Returns the same shape as `add_clip`.
+
+## `add_transition`
+
+Add or replace a transition between adjacent clips and refresh the OTIO export.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `from_clip_id`: previous adjacent clip ID.
+- `to_clip_id`: next adjacent clip ID.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+- `transition_type`: transition label. Defaults to `crossfade`.
+- `duration`: transition duration in seconds. Defaults to `0.5`.
+
+Returns the same shape as `add_clip`.
+
+## `export_timeline`
+
+Export the current project timeline to OTIO.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `platform`
+- `timeline`
+- `validation`
+- `otio_path`
+- `manifest_path`
+
+## `validate_timeline`
+
+Validate a project timeline without rendering it.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `platform`
+- `validation`
+- `timeline`
+
 ## `render_project`
 
 Render a project timeline with FFmpeg and validate the output.

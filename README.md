@@ -14,6 +14,7 @@ The first MVP includes:
 - Richer media inspection tools for video metadata, audio metadata, scene detection, thumbnails, and project inspection.
 - Project manifest creation under `data/projects/`.
 - Basic OpenTimelineIO export.
+- Timeline edit operations for add, trim, split, move, transition, export, and validation.
 - Optional `librosa` beat analysis for music files.
 - A simple FFmpeg render path for 16:9, 9:16, and 1:1 variants.
 - Output validation for existence, probe success, duration, and platform resolution.
@@ -95,6 +96,13 @@ See [docs/custom-mcp-server.md](docs/custom-mcp-server.md) for Cursor/custom MCP
 - `create_project`
 - `analyze_beats`
 - `create_timeline`
+- `add_clip`
+- `trim_clip`
+- `split_clip`
+- `move_clip`
+- `add_transition`
+- `export_timeline`
+- `validate_timeline`
 - `render_project`
 - `validate_output`
 - `edit_video_from_prompt`

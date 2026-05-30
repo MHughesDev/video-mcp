@@ -17,6 +17,13 @@ from .media import probe_media as probe_media_impl
 from .media import scan_assets as scan_assets_impl
 from .projects import load_manifest, save_manifest
 from .schemas import Platform
+from .timeline_ops import add_clip_to_project
+from .timeline_ops import add_transition_to_project
+from .timeline_ops import export_timeline_for_project
+from .timeline_ops import move_clip_in_project
+from .timeline_ops import split_clip_in_project
+from .timeline_ops import trim_clip_in_project
+from .timeline_ops import validate_timeline_for_project
 from .validation import validate_render as validate_render_impl
 from .workflow import (
     build_timeline_for_project,
@@ -157,6 +164,130 @@ def create_timeline(project_id: str, platform: str = "16:9", target_duration: fl
         manifest = build_timeline_for_project(manifest, Platform(platform), target_duration=target_duration)
         plan = manifest.timelines[platform]
         return {"ok": True, "project_id": project_id, "timeline": plan.model_dump(), "manifest_path": str(save_manifest(manifest))}
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def add_clip(
+    project_id: str,
+    source: str,
+    platform: str = "16:9",
+    start: float = 0,
+    duration: float = 4,
+    label: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Add a clip to a project timeline and refresh the OTIO export."""
+    try:
+        return add_clip_to_project(
+            project_id=project_id,
+            platform=Platform(platform),
+            source=source,
+            start=start,
+            duration=duration,
+            label=label,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def trim_clip(
+    project_id: str,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+    start: float | None = None,
+    duration: float | None = None,
+) -> dict[str, object]:
+    """Trim a clip by clip_id or index and refresh the OTIO export."""
+    try:
+        return trim_clip_in_project(
+            project_id=project_id,
+            platform=Platform(platform),
+            clip_id=clip_id,
+            index=index,
+            start=start,
+            duration=duration,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def split_clip(
+    project_id: str,
+    split_at: float,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Split a clip into two timeline clips and refresh the OTIO export."""
+    try:
+        return split_clip_in_project(
+            project_id=project_id,
+            platform=Platform(platform),
+            split_at=split_at,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def move_clip(project_id: str, from_index: int, to_index: int, platform: str = "16:9") -> dict[str, object]:
+    """Move a clip within a project timeline and refresh the OTIO export."""
+    try:
+        return move_clip_in_project(
+            project_id=project_id,
+            platform=Platform(platform),
+            from_index=from_index,
+            to_index=to_index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def add_transition(
+    project_id: str,
+    from_clip_id: str,
+    to_clip_id: str,
+    platform: str = "16:9",
+    transition_type: str = "crossfade",
+    duration: float = 0.5,
+) -> dict[str, object]:
+    """Add a transition between adjacent timeline clips and refresh the OTIO export."""
+    try:
+        return add_transition_to_project(
+            project_id=project_id,
+            platform=Platform(platform),
+            from_clip_id=from_clip_id,
+            to_clip_id=to_clip_id,
+            transition_type=transition_type,
+            duration=duration,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def export_timeline(project_id: str, platform: str = "16:9") -> dict[str, object]:
+    """Export the current project timeline to OTIO."""
+    try:
+        return export_timeline_for_project(project_id=project_id, platform=Platform(platform))
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def validate_timeline(project_id: str, platform: str = "16:9") -> dict[str, object]:
+    """Validate a project timeline without rendering it."""
+    try:
+        return validate_timeline_for_project(project_id=project_id, platform=Platform(platform))
     except Exception as exc:
         return _error(exc)
 

@@ -55,16 +55,26 @@ class MediaProbe(BaseModel):
 
 
 class TimelineClip(BaseModel):
+    clip_id: str = Field(default_factory=lambda: uuid4().hex[:12])
     source: str
     start: float = 0
     duration: float
     label: str | None = None
 
 
+class TimelineTransition(BaseModel):
+    transition_id: str = Field(default_factory=lambda: uuid4().hex[:12])
+    from_clip_id: str
+    to_clip_id: str
+    transition_type: str = "crossfade"
+    duration: float = 0.5
+
+
 class TimelinePlan(BaseModel):
     project_id: str
     platform: Platform = Platform.widescreen
     clips: list[TimelineClip]
+    transitions: list[TimelineTransition] = Field(default_factory=list)
     music_path: str | None = None
     target_duration: float | None = None
     otio_path: str | None = None

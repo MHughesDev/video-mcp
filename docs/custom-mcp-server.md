@@ -92,6 +92,13 @@ http://127.0.0.1:8000/mcp
 - `create_project`
 - `analyze_beats`
 - `create_timeline`
+- `add_clip`
+- `trim_clip`
+- `split_clip`
+- `move_clip`
+- `add_transition`
+- `export_timeline`
+- `validate_timeline`
 - `render_project`
 - `validate_output`
 - `edit_video_from_prompt`
