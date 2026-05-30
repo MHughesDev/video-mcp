@@ -19,6 +19,8 @@ from .inspection import scan_project_assets as scan_project_assets_impl
 from .media import probe_media as probe_media_impl
 from .media import scan_assets as scan_assets_impl
 from .projects import load_manifest, save_manifest
+from .render import plan_render_timeline as plan_render_timeline_impl
+from .render import render_manifest_summary
 from .schemas import Platform
 from .timeline_ops import add_clip_to_project
 from .timeline_ops import add_transition_to_project
@@ -32,7 +34,9 @@ from .workflow import (
     build_timeline_for_project,
     create_project as create_project_impl,
     edit_video_from_prompt as edit_video_from_prompt_impl,
+    render_all_variants as render_all_variants_impl,
     render_and_validate_project,
+    render_platform_variant as render_platform_variant_impl,
 )
 
 app = FastMCP(
@@ -347,13 +351,74 @@ def validate_timeline(project_id: str, platform: str = "16:9") -> dict[str, obje
 
 
 @app.tool()
-def render_project(project_id: str, platform: str = "16:9", render_profile: str = "preview") -> dict[str, object]:
-    """Render a project timeline with FFmpeg and validate the output."""
+def plan_render(project_id: str, platform: str = "16:9", render_profile: str = "preview") -> dict[str, object]:
+    """Plan FFmpeg render commands for a project timeline without executing them."""
     try:
         manifest = load_manifest(project_id)
-        manifest = render_and_validate_project(manifest, Platform(platform), render_profile=render_profile)
-        output = manifest.outputs[platform]
-        return {"ok": output.ok, "project_id": project_id, "output": output.model_dump(), "manifest_path": str(save_manifest(manifest))}
+        plan = manifest.timelines.get(platform)
+        if plan is None:
+            manifest = build_timeline_for_project(manifest, Platform(platform))
+            plan = manifest.timelines[platform]
+        render_manifest = plan_render_timeline_impl(plan, render_profile=render_profile, validate_sources=False)
+        render_manifest.dry_run = True
+        return render_manifest_summary(render_manifest)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def render_project(
+    project_id: str,
+    platform: str = "16:9",
+    render_profile: str = "preview",
+    dry_run: bool = False,
+) -> dict[str, object]:
+    """Render or dry-run one project timeline with FFmpeg and validate the output."""
+    try:
+        return render_platform_variant_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            render_profile=render_profile,
+            dry_run=dry_run,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def render_platform_variant(
+    project_id: str,
+    platform: str,
+    render_profile: str = "preview",
+    dry_run: bool = False,
+) -> dict[str, object]:
+    """Render or dry-run one platform variant for a project."""
+    try:
+        return render_platform_variant_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            render_profile=render_profile,
+            dry_run=dry_run,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def render_all_variants(
+    project_id: str,
+    platforms: list[str] | None = None,
+    render_profile: str = "preview",
+    dry_run: bool = False,
+) -> dict[str, object]:
+    """Render or dry-run all requested platform variants for a project."""
+    try:
+        return render_all_variants_impl(
+            project_id=project_id,
+            platforms=_platforms(platforms) if platforms else None,
+            render_profile=render_profile,
+            dry_run=dry_run,
+        )
     except Exception as exc:
         return _error(exc)
 
@@ -376,6 +441,8 @@ def edit_video_from_prompt(
     platforms: list[str] | None = None,
     target_duration: float = 30,
     render: bool = True,
+    render_profile: str = "preview",
+    dry_run: bool = False,
 ) -> dict[str, object]:
     """Run the MVP end-to-end edit workflow from a natural language request."""
     try:
@@ -387,6 +454,8 @@ def edit_video_from_prompt(
             platforms=_platforms(platforms),
             target_duration=target_duration,
             render=render,
+            render_profile=render_profile,
+            dry_run=dry_run,
         )
     except Exception as exc:
         return _error(exc)

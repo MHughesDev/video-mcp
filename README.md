@@ -18,6 +18,7 @@ The first MVP includes:
 - Optional `librosa` beat analysis for music files.
 - Beat-synced edit planning from beat grids, tempo fallback, and pacing styles.
 - A simple FFmpeg render path for 16:9, 9:16, and 1:1 variants.
+- Render profiles, dry-run FFmpeg command planning, and all-variant render orchestration.
 - Output validation for existence, probe success, duration, and platform resolution.
 - A one-shot `edit_video_from_prompt` tool that runs the MVP pipeline deterministically.
 
@@ -107,7 +108,10 @@ See [docs/custom-mcp-server.md](docs/custom-mcp-server.md) for Cursor/custom MCP
 - `add_transition`
 - `export_timeline`
 - `validate_timeline`
+- `plan_render`
 - `render_project`
+- `render_platform_variant`
+- `render_all_variants`
 - `validate_output`
 - `edit_video_from_prompt`
 

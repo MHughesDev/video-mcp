@@ -433,6 +433,32 @@ Returns:
 - `validation`
 - `timeline`
 
+## `plan_render`
+
+Plan FFmpeg render commands for a project timeline without executing them. This is useful for agent dry-runs, debugging, and environments where FFmpeg is not installed yet.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+- `render_profile`: `preview`, `standard`, or `high`. Defaults to `preview`.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `platform`
+- `render_profile`
+- `dry_run`
+- `output_path`
+- `work_dir`
+- `expected_duration`
+- `dimensions`
+- `command_count`
+- `commands`
+- `segment_paths`
+- `concat_file`
+
 ## `render_project`
 
 Render a project timeline with FFmpeg and validate the output.
@@ -441,13 +467,46 @@ Parameters:
 
 - `project_id`: existing project ID.
 - `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
-- `render_profile`: `preview` or higher quality profile. Defaults to `preview`.
+- `render_profile`: `preview`, `standard`, or `high`. Defaults to `preview`.
+- `dry_run`: when `true`, writes and returns a render manifest without executing FFmpeg.
 
 Returns:
 
 - `ok`
 - `project_id`
 - `output`
+- `manifest_path`
+
+## `render_platform_variant`
+
+Render or dry-run one platform variant for a project.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platform`: `16:9`, `9:16`, or `1:1`.
+- `render_profile`: `preview`, `standard`, or `high`. Defaults to `preview`.
+- `dry_run`: when `true`, writes and returns a render manifest without executing FFmpeg.
+
+Returns the same shape as `render_project`.
+
+## `render_all_variants`
+
+Render or dry-run all requested platform variants for a project.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platforms`: optional list of `16:9`, `9:16`, or `1:1`. Defaults to the platforms saved in the project manifest.
+- `render_profile`: `preview`, `standard`, or `high`. Defaults to `preview`.
+- `dry_run`: when `true`, writes and returns render manifests without executing FFmpeg.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `platforms`
+- `outputs`
 - `manifest_path`
 
 ## `validate_output`
@@ -482,15 +541,17 @@ Parameters:
 - `platforms`: optional list of `16:9`, `9:16`, or `1:1`.
 - `target_duration`: requested timeline duration in seconds. Defaults to `30`.
 - `render`: whether to render outputs. Defaults to `true`.
+- `render_profile`: `preview`, `standard`, or `high`. Defaults to `preview`.
+- `dry_run`: when `true`, plans render commands without executing FFmpeg.
 
 Workflow:
 
 1. Scan assets.
 2. Create a project manifest.
 3. Optionally analyze music beats.
-4. Create OTIO timelines.
-5. Optionally render platform outputs.
-6. Validate rendered outputs.
+4. Create OTIO timelines, using beat-synced edit planning when music analysis succeeds.
+5. Optionally render or dry-run platform outputs.
+6. Validate rendered outputs when rendering actually runs.
 7. Return a delivery manifest summary.
 
 Returns:
@@ -498,6 +559,7 @@ Returns:
 - `ok`
 - `project_id`
 - `manifest_path`
+- `events`
 - `beat_report`
 - `timelines`
 - `outputs`

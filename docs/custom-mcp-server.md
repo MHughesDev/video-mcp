@@ -102,7 +102,10 @@ http://127.0.0.1:8000/mcp
 - `add_transition`
 - `export_timeline`
 - `validate_timeline`
+- `plan_render`
 - `render_project`
+- `render_platform_variant`
+- `render_all_variants`
 - `validate_output`
 - `edit_video_from_prompt`
 

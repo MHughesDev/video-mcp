@@ -9,8 +9,9 @@ from .diagnostics import McpEditorError, WorkflowError, event, exception_issue, 
 from .media import scan_assets
 from .projects import save_manifest, slugify
 from .projects import load_manifest
+from .render import render_manifest_summary
 from .render import render_timeline
-from .schemas import Platform, ProjectManifest, RenderedOutput
+from .schemas import Platform, ProjectManifest, RenderManifest, RenderedOutput
 from .timeline import export_otio, make_simple_timeline_plan
 from .validation import validate_render
 
@@ -61,13 +62,28 @@ def render_and_validate_project(
     manifest: ProjectManifest,
     platform: Platform,
     render_profile: str = "preview",
+    dry_run: bool = False,
 ) -> ProjectManifest:
     plan = manifest.timelines.get(platform.value)
     if plan is None:
         manifest = build_timeline_for_project(manifest, platform)
         plan = manifest.timelines[platform.value]
 
-    output = render_timeline(plan, render_profile=render_profile)
+    output = render_timeline(plan, render_profile=render_profile, dry_run=dry_run)
+    if isinstance(output, RenderManifest):
+        manifest.outputs[platform.value] = RenderedOutput(
+            platform=platform,
+            path=output.output_path,
+            ok=True,
+            validation={
+                "ok": True,
+                "dry_run": True,
+                "render_manifest": render_manifest_summary(output),
+            },
+        )
+        save_manifest(manifest)
+        return manifest
+
     expected_duration = sum(clip.duration for clip in plan.clips)
     validation = validate_render(output, platform, expected_duration=expected_duration)
     manifest.outputs[platform.value] = RenderedOutput(
@@ -80,6 +96,47 @@ def render_and_validate_project(
     return manifest
 
 
+def render_platform_variant(
+    project_id: str,
+    platform: Platform,
+    render_profile: str = "preview",
+    dry_run: bool = False,
+) -> dict[str, object]:
+    manifest = load_manifest(project_id)
+    manifest = render_and_validate_project(manifest, platform, render_profile=render_profile, dry_run=dry_run)
+    output = manifest.outputs[platform.value]
+    return {
+        "ok": output.ok,
+        "project_id": project_id,
+        "platform": platform.value,
+        "output": output.model_dump(),
+        "manifest_path": str(save_manifest(manifest)),
+    }
+
+
+def render_all_variants(
+    project_id: str,
+    platforms: list[Platform] | None = None,
+    render_profile: str = "preview",
+    dry_run: bool = False,
+) -> dict[str, object]:
+    manifest = load_manifest(project_id)
+    selected_platforms = platforms or manifest.platforms
+    results: dict[str, object] = {}
+
+    for platform in selected_platforms:
+        manifest = render_and_validate_project(manifest, platform, render_profile=render_profile, dry_run=dry_run)
+        results[platform.value] = manifest.outputs[platform.value].model_dump()
+
+    return {
+        "ok": all(bool(output["ok"]) for output in results.values()),
+        "project_id": project_id,
+        "platforms": [platform.value for platform in selected_platforms],
+        "outputs": results,
+        "manifest_path": str(save_manifest(manifest)),
+    }
+
+
 def edit_video_from_prompt(
     prompt: str,
     project_name: str = "mvp-edit",
@@ -88,6 +145,8 @@ def edit_video_from_prompt(
     platforms: list[Platform] | None = None,
     target_duration: float = 30,
     render: bool = True,
+    render_profile: str = "preview",
+    dry_run: bool = False,
 ) -> dict[str, object]:
     selected_platforms = platforms or [Platform.widescreen]
     events: list[dict[str, object]] = []
@@ -170,7 +229,7 @@ def edit_video_from_prompt(
 
             if render:
                 events.append(event("render_project", "started", platform=platform.value))
-                manifest = render_and_validate_project(manifest, platform)
+                manifest = render_and_validate_project(manifest, platform, render_profile=render_profile, dry_run=dry_run)
                 output = manifest.outputs[platform.value]
                 events.append(
                     event(

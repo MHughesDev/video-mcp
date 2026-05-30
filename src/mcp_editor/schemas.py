@@ -104,6 +104,27 @@ class RenderedOutput(BaseModel):
     path: str
     ok: bool
     validation: dict[str, Any] = Field(default_factory=dict)
+    render_manifest_path: str | None = None
+
+
+class RenderCommand(BaseModel):
+    stage: str
+    command: list[str]
+    output_path: str | None = None
+
+
+class RenderManifest(BaseModel):
+    project_id: str
+    platform: Platform
+    render_profile: str = "preview"
+    output_path: str
+    work_dir: str
+    expected_duration: float
+    dimensions: tuple[int, int]
+    commands: list[RenderCommand] = Field(default_factory=list)
+    segment_paths: list[str] = Field(default_factory=list)
+    concat_file: str | None = None
+    dry_run: bool = False
 
 
 class ProjectManifest(BaseModel):
