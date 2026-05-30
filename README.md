@@ -11,6 +11,7 @@ The first MVP includes:
 - A Python package and `mcp-editor` console entry point.
 - A FastMCP server that runs over stdio or streamable HTTP.
 - Asset scanning and FFprobe metadata tools.
+- Richer media inspection tools for video metadata, audio metadata, scene detection, thumbnails, and project inspection.
 - Project manifest creation under `data/projects/`.
 - Basic OpenTimelineIO export.
 - Optional `librosa` beat analysis for music files.
@@ -84,7 +85,13 @@ See [docs/custom-mcp-server.md](docs/custom-mcp-server.md) for Cursor/custom MCP
 ## MVP Tools
 
 - `scan_assets`
+- `scan_project_assets`
 - `probe_media`
+- `analyze_video_metadata`
+- `analyze_audio_metadata`
+- `detect_scenes`
+- `generate_thumbnails`
+- `inspect_project`
 - `create_project`
 - `analyze_beats`
 - `create_timeline`

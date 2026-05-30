@@ -2,6 +2,34 @@
 
 This plan defines the intended build sequence for `mcp-editor`: a headless, local-first MCP video editing server that turns existing footage, music, LUTs, and assets into validated rendered videos plus OpenTimelineIO timelines.
 
+## Long-Term Completion Status
+
+Overall long-term application completion: **18%**
+
+This percentage is an engineering estimate of how much of the intended long-term product is implemented, tested, documented, and usable. It is not a calendar estimate.
+
+Current state: **MVP foundation exists, but the full long-term video editing system is not complete.**
+
+| Area | Status | Completion |
+| --- | --- | ---: |
+| Repository scaffold and package setup | Implemented | 100% |
+| Local MCP server connection | Implemented | 80% |
+| Structured errors and workflow callbacks | Implemented | 80% |
+| Media scanning and probing | Phase 2 inspection tools implemented | 60% |
+| Project manifest model | MVP implemented with inspection support | 30% |
+| Timeline and OTIO export | MVP implemented | 20% |
+| Beat analysis | MVP implemented | 15% |
+| Beat-synced edit planning | Not yet implemented | 0% |
+| FFmpeg render engine | MVP implemented, blocked locally until FFmpeg is installed | 20% |
+| Effects engine | Not yet implemented | 0% |
+| LUT grading system | Not yet implemented | 0% |
+| Self-validation gate | MVP implemented | 15% |
+| End-to-end prompt workflow | MVP implemented | 15% |
+| Integration tests with real media | Unit coverage added; real media fixtures not yet implemented | 10% |
+| GitHub publishing and release readiness | Not yet implemented | 0% |
+
+Update this section whenever a major phase lands. Keep the percentage conservative: only count behavior that is implemented, tested, and documented enough for another coding agent to use.
+
 ## Phase 1: Foundation And Contracts
 
 Define the core project contracts before building editing tools.

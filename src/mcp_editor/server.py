@@ -7,6 +7,12 @@ from mcp.server.fastmcp import FastMCP
 
 from .beat_sync import analyze_beats as analyze_beats_impl
 from .diagnostics import failed_tool_result
+from .inspection import analyze_audio_metadata as analyze_audio_metadata_impl
+from .inspection import analyze_video_metadata as analyze_video_metadata_impl
+from .inspection import detect_scenes as detect_scenes_impl
+from .inspection import generate_thumbnails as generate_thumbnails_impl
+from .inspection import inspect_project as inspect_project_impl
+from .inspection import scan_project_assets as scan_project_assets_impl
 from .media import probe_media as probe_media_impl
 from .media import scan_assets as scan_assets_impl
 from .projects import load_manifest, save_manifest
@@ -49,11 +55,65 @@ def scan_assets(input_dir: str = "data/input") -> dict[str, object]:
 
 
 @app.tool()
+def scan_project_assets(input_dir: str = "data/input", include_audio: bool = True) -> dict[str, object]:
+    """Scan project assets with aggregate media counts and probe diagnostics."""
+    try:
+        return scan_project_assets_impl(input_dir=input_dir, include_audio=include_audio)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
 def probe_media(path: str) -> dict[str, object]:
     """Probe one media file with FFprobe."""
     try:
         probe = probe_media_impl(path)
         return probe.model_dump()
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def analyze_video_metadata(path: str) -> dict[str, object]:
+    """Return video-focused metadata for one media file."""
+    try:
+        return analyze_video_metadata_impl(path)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def analyze_audio_metadata(path: str) -> dict[str, object]:
+    """Return audio-focused metadata for one media file."""
+    try:
+        return analyze_audio_metadata_impl(path)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def detect_scenes(path: str, threshold: float = 0.35, min_scene_gap: float = 0.5) -> dict[str, object]:
+    """Detect likely scene-cut timestamps with FFmpeg scene scoring."""
+    try:
+        return detect_scenes_impl(path, threshold=threshold, min_scene_gap=min_scene_gap)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def generate_thumbnails(path: str, output_directory: str | None = None, count: int = 5) -> dict[str, object]:
+    """Generate representative thumbnails for a video file."""
+    try:
+        return generate_thumbnails_impl(path, output_directory=output_directory, count=count)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def inspect_project(project_id: str) -> dict[str, object]:
+    """Inspect a saved project manifest, timelines, outputs, and asset state."""
+    try:
+        return inspect_project_impl(project_id)
     except Exception as exc:
         return _error(exc)
 

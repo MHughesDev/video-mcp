@@ -4,8 +4,8 @@ import json
 import re
 from pathlib import Path
 
-from .diagnostics import project_not_found
 from .config import projects_dir
+from .diagnostics import project_not_found
 from .schemas import ProjectManifest
 
 
@@ -14,14 +14,15 @@ def slugify(value: str) -> str:
     return slug or "project"
 
 
-def project_dir(project_id: str) -> Path:
+def project_dir(project_id: str, create: bool = True) -> Path:
     path = projects_dir() / project_id
-    path.mkdir(parents=True, exist_ok=True)
+    if create:
+        path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def manifest_path(project_id: str) -> Path:
-    return project_dir(project_id) / "manifest.json"
+def manifest_path(project_id: str, create_parent: bool = True) -> Path:
+    return project_dir(project_id, create=create_parent) / "manifest.json"
 
 
 def save_manifest(manifest: ProjectManifest) -> Path:
@@ -31,7 +32,7 @@ def save_manifest(manifest: ProjectManifest) -> Path:
 
 
 def load_manifest(project_id: str) -> ProjectManifest:
-    path = manifest_path(project_id)
+    path = manifest_path(project_id, create_parent=False)
     if not path.exists():
         raise project_not_found(project_id, str(path))
     data = json.loads(path.read_text(encoding="utf-8"))

@@ -62,6 +62,24 @@ Returns:
 - `input_dir`
 - `assets`
 
+## `scan_project_assets`
+
+Scan a local project asset directory and return aggregate counts plus per-file probe diagnostics.
+
+Parameters:
+
+- `input_dir`: directory to scan. Defaults to `data/input`.
+- `include_audio`: whether to include standalone audio assets. Defaults to `true`.
+
+Returns:
+
+- `ok`
+- `input_dir`
+- `exists`
+- `supported_extensions`
+- `summary`
+- `assets`
+
 ## `probe_media`
 
 Probe one media file with FFprobe.
@@ -80,6 +98,110 @@ Returns:
 - `bit_rate`
 - `streams`
 - `error`
+
+## `analyze_video_metadata`
+
+Return video-focused metadata for one media file.
+
+Parameters:
+
+- `path`: local media file path.
+
+Returns:
+
+- `ok`
+- `path`
+- `duration`
+- `format_name`
+- `bit_rate`
+- `width`
+- `height`
+- `aspect_ratio`
+- `fps`
+- `codec_name`
+- `has_audio`
+- `stream_count`
+- `probe`
+
+## `analyze_audio_metadata`
+
+Return audio-focused metadata for one media file.
+
+Parameters:
+
+- `path`: local media file path.
+
+Returns:
+
+- `ok`
+- `path`
+- `duration`
+- `format_name`
+- `bit_rate`
+- `codec_name`
+- `has_video`
+- `stream_count`
+- `probe`
+
+## `detect_scenes`
+
+Detect likely scene-cut timestamps with FFmpeg scene scoring.
+
+Parameters:
+
+- `path`: local video file path.
+- `threshold`: FFmpeg scene threshold. Defaults to `0.35`.
+- `min_scene_gap`: minimum seconds between reported scene changes. Defaults to `0.5`.
+
+Returns:
+
+- `ok`
+- `path`
+- `threshold`
+- `min_scene_gap`
+- `scene_count`
+- `scene_times`
+
+## `generate_thumbnails`
+
+Generate representative thumbnails for a video file.
+
+Parameters:
+
+- `path`: local video file path.
+- `output_directory`: optional thumbnail output directory.
+- `count`: requested thumbnail count. Defaults to `5`.
+
+Returns:
+
+- `ok`
+- `path`
+- `output_directory`
+- `count`
+- `timestamps`
+- `thumbnails`
+
+## `inspect_project`
+
+Inspect a saved project manifest, including assets, timelines, outputs, and aggregate state.
+
+Parameters:
+
+- `project_id`: existing project ID.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `name`
+- `prompt`
+- `input_dir`
+- `music_path`
+- `platforms`
+- `summary`
+- `assets`
+- `timelines`
+- `outputs`
 
 ## `create_project`
 

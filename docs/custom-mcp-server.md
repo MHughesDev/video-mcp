@@ -82,7 +82,13 @@ http://127.0.0.1:8000/mcp
 ## MVP Tool Surface
 
 - `scan_assets`
+- `scan_project_assets`
 - `probe_media`
+- `analyze_video_metadata`
+- `analyze_audio_metadata`
+- `detect_scenes`
+- `generate_thumbnails`
+- `inspect_project`
 - `create_project`
 - `analyze_beats`
 - `create_timeline`
