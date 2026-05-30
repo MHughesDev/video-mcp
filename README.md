@@ -16,6 +16,7 @@ The first MVP includes:
 - Basic OpenTimelineIO export.
 - Timeline edit operations for add, trim, split, move, transition, export, and validation.
 - Optional `librosa` beat analysis for music files.
+- Beat-synced edit planning from beat grids, tempo fallback, and pacing styles.
 - A simple FFmpeg render path for 16:9, 9:16, and 1:1 variants.
 - Output validation for existence, probe success, duration, and platform resolution.
 - A one-shot `edit_video_from_prompt` tool that runs the MVP pipeline deterministically.
@@ -95,6 +96,9 @@ See [docs/custom-mcp-server.md](docs/custom-mcp-server.md) for Cursor/custom MCP
 - `inspect_project`
 - `create_project`
 - `analyze_beats`
+- `suggest_cut_points`
+- `plan_beat_synced_edit`
+- `apply_edit_plan`
 - `create_timeline`
 - `add_clip`
 - `trim_clip`

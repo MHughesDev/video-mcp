@@ -6,6 +6,9 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from .beat_sync import analyze_beats as analyze_beats_impl
+from .beat_sync import apply_edit_plan as apply_edit_plan_impl
+from .beat_sync import plan_beat_synced_edit as plan_beat_synced_edit_impl
+from .beat_sync import suggest_cut_points as suggest_cut_points_impl
 from .diagnostics import failed_tool_result
 from .inspection import analyze_audio_metadata as analyze_audio_metadata_impl
 from .inspection import analyze_video_metadata as analyze_video_metadata_impl
@@ -152,6 +155,57 @@ def analyze_beats(music_path: str) -> dict[str, object]:
     """Analyze music tempo and beat timestamps with librosa."""
     try:
         return analyze_beats_impl(music_path)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def suggest_cut_points(
+    beat_times: list[float] | None = None,
+    target_duration: float = 30,
+    style: str = "medium",
+    tempo: float | None = None,
+) -> dict[str, object]:
+    """Suggest timeline cut points from beat times, tempo, target duration, and pacing style."""
+    try:
+        return suggest_cut_points_impl(
+            beat_times=beat_times,
+            target_duration=target_duration,
+            style=style,
+            tempo=tempo,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def plan_beat_synced_edit(
+    project_id: str,
+    platform: str = "16:9",
+    target_duration: float = 30,
+    style: str = "medium",
+    beat_times: list[float] | None = None,
+    tempo: float | None = None,
+) -> dict[str, object]:
+    """Create and save a deterministic beat-synced edit plan for a project."""
+    try:
+        return plan_beat_synced_edit_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            target_duration=target_duration,
+            style=style,
+            beat_times=beat_times,
+            tempo=tempo,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_edit_plan(project_id: str, platform: str = "16:9") -> dict[str, object]:
+    """Apply a saved beat edit plan to a project timeline and export OTIO."""
+    try:
+        return apply_edit_plan_impl(project_id=project_id, platform=Platform(platform))
     except Exception as exc:
         return _error(exc)
 

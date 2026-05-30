@@ -239,6 +239,66 @@ Returns:
 - `beat_times`
 - `error`
 
+## `suggest_cut_points`
+
+Suggest timeline cut points from beat times, tempo, target duration, and pacing style.
+
+Parameters:
+
+- `beat_times`: optional list of beat timestamps in seconds.
+- `target_duration`: target edit duration in seconds. Defaults to `30`.
+- `style`: pacing style. Supported presets include `fast`, `social`, `trailer`, `medium`, `documentary`, and `slow`.
+- `tempo`: optional BPM fallback when beat times are unavailable.
+
+Returns:
+
+- `ok`
+- `style`
+- `target_duration`
+- `beat_multiplier`
+- `cut_count`
+- `cut_points`
+
+## `plan_beat_synced_edit`
+
+Create and save a deterministic beat-synced edit plan for a project.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+- `target_duration`: target edit duration in seconds. Defaults to `30`.
+- `style`: pacing style. Defaults to `medium`.
+- `beat_times`: optional beat timestamps. If omitted and the project has music, the server analyzes the music.
+- `tempo`: optional BPM fallback.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `platform`
+- `edit_plan`
+- `manifest_path`
+
+## `apply_edit_plan`
+
+Apply a saved beat edit plan to a project timeline and export OTIO.
+
+Parameters:
+
+- `project_id`: existing project ID.
+- `platform`: `16:9`, `9:16`, or `1:1`. Defaults to `16:9`.
+
+Returns:
+
+- `ok`
+- `project_id`
+- `platform`
+- `timeline`
+- `validation`
+- `otio_path`
+- `manifest_path`
+
 ## `create_timeline`
 
 Create a simple sequential OTIO timeline for a project.

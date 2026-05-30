@@ -3,9 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from .beat_sync import analyze_beats
+from .beat_sync import apply_edit_plan as apply_beat_edit_plan
+from .beat_sync import plan_beat_synced_edit
 from .diagnostics import McpEditorError, WorkflowError, event, exception_issue, no_video_assets
 from .media import scan_assets
 from .projects import save_manifest, slugify
+from .projects import load_manifest
 from .render import render_timeline
 from .schemas import Platform, ProjectManifest, RenderedOutput
 from .timeline import export_otio, make_simple_timeline_plan
@@ -122,17 +125,48 @@ def edit_video_from_prompt(
             )
 
         for platform in selected_platforms:
-            events.append(event("create_timeline", "started", platform=platform.value))
-            manifest = build_timeline_for_project(manifest, platform, target_duration=target_duration)
-            events.append(
-                event(
-                    "create_timeline",
-                    "completed",
-                    platform=platform.value,
-                    otio_path=manifest.timelines[platform.value].otio_path,
-                    clip_count=len(manifest.timelines[platform.value].clips),
+            if beat_report and beat_report.get("ok"):
+                events.append(event("plan_beat_synced_edit", "started", platform=platform.value))
+                plan_result = plan_beat_synced_edit(
+                    project_id=manifest.project_id,
+                    platform=platform,
+                    target_duration=target_duration,
+                    style="medium",
+                    beat_times=[float(value) for value in beat_report.get("beat_times", [])],
+                    tempo=float(beat_report["tempo"]),
                 )
-            )
+                events.append(
+                    event(
+                        "plan_beat_synced_edit",
+                        "completed",
+                        platform=platform.value,
+                        clip_count=len(plan_result["edit_plan"]["clips"]),
+                    )
+                )
+                events.append(event("apply_edit_plan", "started", platform=platform.value))
+                apply_result = apply_beat_edit_plan(project_id=manifest.project_id, platform=platform)
+                manifest = load_manifest(manifest.project_id)
+                events.append(
+                    event(
+                        "apply_edit_plan",
+                        "completed" if apply_result.get("ok") else "failed",
+                        platform=platform.value,
+                        otio_path=apply_result.get("otio_path"),
+                        validation=apply_result.get("validation"),
+                    )
+                )
+            else:
+                events.append(event("create_timeline", "started", platform=platform.value))
+                manifest = build_timeline_for_project(manifest, platform, target_duration=target_duration)
+                events.append(
+                    event(
+                        "create_timeline",
+                        "completed",
+                        platform=platform.value,
+                        otio_path=manifest.timelines[platform.value].otio_path,
+                        clip_count=len(manifest.timelines[platform.value].clips),
+                    )
+                )
 
             if render:
                 events.append(event("render_project", "started", platform=platform.value))

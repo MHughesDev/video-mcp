@@ -91,6 +91,9 @@ http://127.0.0.1:8000/mcp
 - `inspect_project`
 - `create_project`
 - `analyze_beats`
+- `suggest_cut_points`
+- `plan_beat_synced_edit`
+- `apply_edit_plan`
 - `create_timeline`
 - `add_clip`
 - `trim_clip`

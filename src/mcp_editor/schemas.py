@@ -70,6 +70,25 @@ class TimelineTransition(BaseModel):
     duration: float = 0.5
 
 
+class EditPlanClip(BaseModel):
+    source: str
+    start: float = 0
+    duration: float
+    beat_time: float | None = None
+    label: str | None = None
+
+
+class BeatEditPlan(BaseModel):
+    project_id: str
+    platform: Platform = Platform.widescreen
+    style: str = "medium"
+    target_duration: float
+    music_path: str | None = None
+    tempo: float | None = None
+    cut_points: list[float] = Field(default_factory=list)
+    clips: list[EditPlanClip] = Field(default_factory=list)
+
+
 class TimelinePlan(BaseModel):
     project_id: str
     platform: Platform = Platform.widescreen
@@ -97,6 +116,7 @@ class ProjectManifest(BaseModel):
     platforms: list[Platform] = Field(default_factory=lambda: [Platform.widescreen])
     assets: list[MediaProbe] = Field(default_factory=list)
     timelines: dict[str, TimelinePlan] = Field(default_factory=dict)
+    edit_plans: dict[str, BeatEditPlan] = Field(default_factory=dict)
     outputs: dict[str, RenderedOutput] = Field(default_factory=dict)
 
 
