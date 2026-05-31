@@ -149,6 +149,423 @@ class ProjectManifest(BaseModel):
     outputs: dict[str, RenderedOutput] = Field(default_factory=dict)
 
 
+# ---------------------------------------------------------------------------
+# Reference library
+# ---------------------------------------------------------------------------
+
+class ReferenceType(str, Enum):
+    video = "video"
+    image = "image"
+    audio = "audio"
+
+
+class ReferenceAsset(BaseModel):
+    ref_id: str
+    path: str
+    type: ReferenceType
+    tags: list[str] = Field(default_factory=list)
+    notes: str = ""
+    added_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    doc_path: str | None = None
+
+
+class ReferencesManifest(BaseModel):
+    references: list[ReferenceAsset] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Media comprehension documents — shared enums
+# ---------------------------------------------------------------------------
+
+class TemperatureValue(str, Enum):
+    warm = "warm"
+    neutral = "neutral"
+    cool = "cool"
+
+
+class ContrastValue(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+class SaturationValue(str, Enum):
+    desaturated = "desaturated"
+    muted = "muted"
+    natural = "natural"
+    vivid = "vivid"
+
+
+class IntensityValue(str, Enum):
+    quiet = "quiet"
+    moderate = "moderate"
+    intense = "intense"
+    overwhelming = "overwhelming"
+
+
+class TonalKey(str, Enum):
+    high_key = "high_key"
+    balanced = "balanced"
+    low_key = "low_key"
+
+
+# ---------------------------------------------------------------------------
+# VideoDoc
+# ---------------------------------------------------------------------------
+
+class VideoIdentity(BaseModel):
+    file: str
+    duration: str
+    source: str | None = None
+    captured: str | None = None
+
+
+class VideoTechnical(BaseModel):
+    resolution: str
+    aspect_ratio: str
+    fps: float
+    color_space: str | None = None
+    dynamic_range: str = "SDR"
+    stabilized: bool | None = None
+    has_audio: bool = False
+
+
+class ShotScale(str, Enum):
+    extreme_wide = "extreme_wide"
+    wide = "wide"
+    medium_wide = "medium_wide"
+    medium = "medium"
+    medium_close = "medium_close"
+    close = "close"
+    extreme_close = "extreme_close"
+    macro = "macro"
+
+
+class CameraAngle(str, Enum):
+    eye_level = "eye_level"
+    high = "high"
+    low = "low"
+    birds_eye = "birds_eye"
+    worms_eye = "worms_eye"
+    dutch = "dutch"
+
+
+class CameraMovement(str, Enum):
+    static = "static"
+    pan = "pan"
+    tilt = "tilt"
+    dolly = "dolly"
+    zoom = "zoom"
+    handheld = "handheld"
+    gimbal = "gimbal"
+    aerial = "aerial"
+
+
+class VideoShotSpatial(BaseModel):
+    scale: ShotScale | None = None
+    angle: CameraAngle | None = None
+    depth_of_field: str | None = None
+    composition: str = ""
+
+
+class VideoShotMovement(BaseModel):
+    camera: CameraMovement | None = None
+    subject_motion: str | None = None
+    overall_pace: str | None = None
+    energy_arc: str = ""
+
+
+class VideoColor(BaseModel):
+    palette: list[str] = Field(default_factory=list)
+    temperature: TemperatureValue | None = None
+    contrast: ContrastValue | None = None
+    saturation: SaturationValue | None = None
+    tonal_key: TonalKey | None = None
+    grade_character: str | None = None
+
+
+class VideoLighting(BaseModel):
+    source: str | None = None
+    quality: str | None = None
+    direction: str | None = None
+    time_of_day: str | None = None
+    shadow_character: str | None = None
+
+
+class VideoContent(BaseModel):
+    primary_subject: str = ""
+    secondary: list[str] = Field(default_factory=list)
+    setting: str = ""
+    action: str = ""
+    human_presence: str | None = None
+    emotion_displayed: str | None = None
+
+
+class VideoEmbeddedAudio(BaseModel):
+    ambient: str | None = None
+    dialogue: str | None = None
+    music: str | None = None
+    audio_quality: str | None = None
+    silence_at: list[str] = Field(default_factory=list)
+
+
+class TemporalSegment(BaseModel):
+    start: str
+    end: str
+    description: str
+
+
+class VideoTemporalMap(BaseModel):
+    segments: list[TemporalSegment] = Field(default_factory=list)
+    natural_cutpoints: list[str] = Field(default_factory=list)
+    energy_arc: str = ""
+
+
+class VideoEmotionalRegister(BaseModel):
+    primary_emotion: str = ""
+    secondary: list[str] = Field(default_factory=list)
+    intensity: IntensityValue | None = None
+    viewer_effect: str = ""
+
+
+class VideoNarrativeRole(BaseModel):
+    best_as: list[str] = Field(default_factory=list)
+    narrative_weight: str | None = None
+    standalone: bool | None = None
+
+
+class VideoCreativeUtility(BaseModel):
+    pairs_with: str = ""
+    conflicts_with: str | None = None
+    grade_notes: str | None = None
+    edit_notes: str | None = None
+    avoid: str | None = None
+
+
+class VideoDoc(BaseModel):
+    identity: VideoIdentity
+    technical: VideoTechnical
+    shot_spatial: VideoShotSpatial = Field(default_factory=VideoShotSpatial)
+    shot_movement: VideoShotMovement = Field(default_factory=VideoShotMovement)
+    color: VideoColor = Field(default_factory=VideoColor)
+    lighting: VideoLighting = Field(default_factory=VideoLighting)
+    content: VideoContent = Field(default_factory=VideoContent)
+    embedded_audio: VideoEmbeddedAudio = Field(default_factory=VideoEmbeddedAudio)
+    temporal_map: VideoTemporalMap = Field(default_factory=VideoTemporalMap)
+    emotional_register: VideoEmotionalRegister = Field(default_factory=VideoEmotionalRegister)
+    narrative_role: VideoNarrativeRole = Field(default_factory=VideoNarrativeRole)
+    creative_utility: VideoCreativeUtility = Field(default_factory=VideoCreativeUtility)
+
+
+# ---------------------------------------------------------------------------
+# ImageDoc
+# ---------------------------------------------------------------------------
+
+class FramingRule(str, Enum):
+    thirds = "thirds"
+    centered = "centered"
+    golden_ratio = "golden_ratio"
+    diagonal = "diagonal"
+    symmetrical = "symmetrical"
+    unconventional = "unconventional"
+
+
+class Perspective(str, Enum):
+    eye_level = "eye_level"
+    high = "high"
+    low = "low"
+    aerial = "aerial"
+    worms_eye = "worms_eye"
+
+
+class ImageIdentity(BaseModel):
+    file: str
+    resolution: str
+    aspect_ratio: str
+    source: str | None = None
+
+
+class ImageTechnical(BaseModel):
+    color_space: str | None = None
+    dynamic_range: str | None = None
+    sharpness: str | None = None
+    grain: str | None = None
+
+
+class DepthLayers(BaseModel):
+    foreground: str | None = None
+    midground: str | None = None
+    background: str | None = None
+
+
+class ImageComposition(BaseModel):
+    rule: FramingRule | None = None
+    subject_position: str = ""
+    depth_layers: DepthLayers = Field(default_factory=DepthLayers)
+    negative_space: str | None = None
+    leading_lines: str | None = None
+    perspective: Perspective | None = None
+    depth_of_field: str | None = None
+
+
+class ImageColor(BaseModel):
+    palette: list[str] = Field(default_factory=list)
+    temperature: TemperatureValue | None = None
+    contrast: ContrastValue | None = None
+    saturation: SaturationValue | None = None
+    tonal_key: TonalKey | None = None
+    color_relationships: str | None = None
+
+
+class ImageLighting(BaseModel):
+    source: str | None = None
+    quality: str | None = None
+    direction: str | None = None
+    shadows: str | None = None
+    highlights: str | None = None
+
+
+class ImageContent(BaseModel):
+    primary_subject: str = ""
+    secondary_elements: list[str] = Field(default_factory=list)
+    setting: str = ""
+    human_presence: str | None = None
+    emotion_displayed: str | None = None
+    moment: str = ""
+
+
+class ImageAesthetic(BaseModel):
+    genre: str | None = None
+    era_feel: str | None = None
+    processing: str | None = None
+    texture_character: str | None = None
+
+
+class ImageEmotionalRegister(BaseModel):
+    primary_mood: str = ""
+    secondary_moods: list[str] = Field(default_factory=list)
+    intensity: IntensityValue | None = None
+    what_it_communicates: str = ""
+
+
+class ImageCreativeUtility(BaseModel):
+    use_as: list[str] = Field(default_factory=list)
+    grade_inspiration: str | None = None
+    pairs_with_video: str | None = None
+    reference_notes: str | None = None
+
+
+class ImageDoc(BaseModel):
+    identity: ImageIdentity
+    technical: ImageTechnical = Field(default_factory=ImageTechnical)
+    composition: ImageComposition = Field(default_factory=ImageComposition)
+    color: ImageColor = Field(default_factory=ImageColor)
+    lighting: ImageLighting = Field(default_factory=ImageLighting)
+    content: ImageContent = Field(default_factory=ImageContent)
+    aesthetic: ImageAesthetic = Field(default_factory=ImageAesthetic)
+    emotional_register: ImageEmotionalRegister = Field(default_factory=ImageEmotionalRegister)
+    creative_utility: ImageCreativeUtility = Field(default_factory=ImageCreativeUtility)
+
+
+# ---------------------------------------------------------------------------
+# AudioDoc
+# ---------------------------------------------------------------------------
+
+class AudioType(str, Enum):
+    music = "music"
+    ambient = "ambient"
+    sfx = "sfx"
+    voiceover = "voiceover"
+    field_recording = "field_recording"
+    mixed = "mixed"
+
+
+class AudioIdentity(BaseModel):
+    file: str
+    duration: str
+    type: AudioType = AudioType.music
+    source: str | None = None
+    artist_title: str | None = None
+
+
+class AudioTechnical(BaseModel):
+    sample_rate: int | None = None
+    bit_depth: int | None = None
+    channels: str | None = None
+    bpm: float | None = None
+    key: str | None = None
+    time_signature: str | None = None
+
+
+class AudioSection(BaseModel):
+    name: str
+    start: str
+    end: str
+    description: str = ""
+
+
+class AudioStructure(BaseModel):
+    sections: list[AudioSection] = Field(default_factory=list)
+
+
+class AudioSonicCharacter(BaseModel):
+    primary_sources: list[str] = Field(default_factory=list)
+    texture: str | None = None
+    frequency_profile: str | None = None
+    dynamic_range: str | None = None
+    stereo_field: str | None = None
+    vocal_presence: str | None = None
+
+
+class EnergyMoment(BaseModel):
+    timestamp: str
+    description: str = ""
+
+
+class AudioEnergyProfile(BaseModel):
+    overall_energy: str | None = None
+    energy_arc: str = ""
+    peak_moments: list[EnergyMoment] = Field(default_factory=list)
+    quiet_moments: list[EnergyMoment] = Field(default_factory=list)
+    tension_points: list[EnergyMoment] = Field(default_factory=list)
+
+
+class AudioEmotionalRegister(BaseModel):
+    primary_mood: str = ""
+    secondary_moods: list[str] = Field(default_factory=list)
+    emotional_arc: str = ""
+    intensity: IntensityValue | None = None
+    cultural_context: str | None = None
+
+
+class AudioEditUtility(BaseModel):
+    natural_cutpoints: list[str] = Field(default_factory=list)
+    loop_points: list[str] = Field(default_factory=list)
+    recommended_clip_in: str | None = None
+    recommended_clip_out: str | None = None
+    works_as: str | None = None
+    pacing_suggestion: str | None = None
+    sync_opportunities: list[str] = Field(default_factory=list)
+
+
+class AudioCreativeUtility(BaseModel):
+    pairs_with_visual: str = ""
+    avoid_pairing_with: str | None = None
+    reference_context: str | None = None
+    notes: str | None = None
+
+
+class AudioDoc(BaseModel):
+    identity: AudioIdentity
+    technical: AudioTechnical = Field(default_factory=AudioTechnical)
+    structure: AudioStructure = Field(default_factory=AudioStructure)
+    sonic_character: AudioSonicCharacter = Field(default_factory=AudioSonicCharacter)
+    energy_profile: AudioEnergyProfile = Field(default_factory=AudioEnergyProfile)
+    emotional_register: AudioEmotionalRegister = Field(default_factory=AudioEmotionalRegister)
+    edit_utility: AudioEditUtility = Field(default_factory=AudioEditUtility)
+    creative_utility: AudioCreativeUtility = Field(default_factory=AudioCreativeUtility)
+
+
 def as_path(value: str | Path) -> Path:
     return Path(value).expanduser().resolve()
 

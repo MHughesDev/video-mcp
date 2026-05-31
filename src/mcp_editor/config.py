@@ -35,3 +35,21 @@ def output_dir() -> Path:
     path = data_dir() / "output"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def input_dir() -> Path:
+    path = data_dir() / "input"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def music_dir() -> Path:
+    path = data_dir() / "music"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def references_dir() -> Path:
+    path = data_dir() / "references"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
