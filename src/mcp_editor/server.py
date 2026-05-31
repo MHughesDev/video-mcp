@@ -55,6 +55,19 @@ from .workflow import (
     render_and_validate_project,
     render_platform_variant as render_platform_variant_impl,
 )
+from .sourcing import download_asset as download_asset_impl
+from .references import (
+    add_reference as add_reference_impl,
+    list_references as list_references_impl,
+    get_reference as get_reference_impl,
+    remove_reference as remove_reference_impl,
+)
+from .media_docs import (
+    create_media_doc as create_media_doc_impl,
+    get_media_doc as get_media_doc_impl,
+    list_media_docs as list_media_docs_impl,
+    auto_generate_doc as auto_generate_doc_impl,
+)
 
 app = FastMCP(
     "mcp-editor",
@@ -760,6 +773,123 @@ def render_with_grade(
             render_profile=render_profile,
             dry_run=dry_run,
         )
+    except Exception as exc:
+        return _error(exc)
+
+
+# ---------------------------------------------------------------------------
+# Asset sourcing
+# ---------------------------------------------------------------------------
+
+@app.tool()
+def download_asset(
+    url: str,
+    destination: str,
+    filename: str | None = None,
+) -> dict[str, object]:
+    """Download a media file from a URL into the workspace.
+    destination must be one of: input, music, references.
+    Handles YouTube, Vimeo, SoundCloud, and 1000+ sites via yt-dlp,
+    plus direct file URLs (mp4, mp3, jpg, png, etc.) via HTTP.
+    filename is optional — inferred from the URL if omitted."""
+    try:
+        return download_asset_impl(url=url, destination=destination, filename=filename)
+    except Exception as exc:
+        return _error(exc)
+
+
+# ---------------------------------------------------------------------------
+# Reference library
+# ---------------------------------------------------------------------------
+
+@app.tool()
+def add_reference(
+    path: str,
+    tags: list[str] | None = None,
+    notes: str = "",
+) -> dict[str, object]:
+    """Add a media file to the reference/inspiration library.
+    Does not add it to any timeline — it is kept separate as a research asset.
+    tags are free-form strings used for filtering."""
+    try:
+        return add_reference_impl(path=path, tags=tags or [], notes=notes)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def list_references(tags: list[str] | None = None) -> dict[str, object]:
+    """List all reference assets, optionally filtered by tags.
+    Passing multiple tags requires ALL of them to match (AND filter)."""
+    try:
+        return list_references_impl(tags=tags or [])
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def get_reference(ref_id: str) -> dict[str, object]:
+    """Get a single reference asset by its ref_id."""
+    try:
+        return get_reference_impl(ref_id=ref_id)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def remove_reference(ref_id: str) -> dict[str, object]:
+    """Remove a reference from the library.
+    Deletes the companion .md doc if present. Does not delete the media file itself."""
+    try:
+        return remove_reference_impl(ref_id=ref_id)
+    except Exception as exc:
+        return _error(exc)
+
+
+# ---------------------------------------------------------------------------
+# Media comprehension documents
+# ---------------------------------------------------------------------------
+
+@app.tool()
+def create_media_doc(path: str, doc_data: dict) -> dict[str, object]:
+    """Create or update a comprehension document for a media file.
+    doc_data must match the schema for the file type (VideoDoc / ImageDoc / AudioDoc).
+    Writes a human-readable .md sidecar and a machine-readable .meta.json sidecar.
+    Use auto_generate_doc first to get pre-filled technical fields."""
+    try:
+        return create_media_doc_impl(media_path=path, doc_data=doc_data)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def get_media_doc(path: str) -> dict[str, object]:
+    """Read the comprehension document for a media file.
+    Returns the full structured doc and paths to the .md and .meta.json files."""
+    try:
+        return get_media_doc_impl(media_path=path)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def list_media_docs(directory: str = "data/input") -> dict[str, object]:
+    """List all media files in a directory that have comprehension documents."""
+    try:
+        return list_media_docs_impl(directory=directory)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def auto_generate_doc(path: str) -> dict[str, object]:
+    """Auto-generate a partial comprehension document for a media file.
+    Extracts all technically derivable fields (resolution, fps, bpm, etc.)
+    and returns keyframe image paths for video/image files so the calling
+    agent can visually analyze them.
+    Workflow: call this → analyze keyframes → call create_media_doc with complete doc_data."""
+    try:
+        return auto_generate_doc_impl(media_path=path)
     except Exception as exc:
         return _error(exc)
 
