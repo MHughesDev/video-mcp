@@ -379,6 +379,7 @@ def edit_video_from_prompt(
                     platform=platform,
                     preset=inferred_grade,
                 )
+                manifest = load_manifest(manifest.project_id)
                 events.append(event(
                     "apply_grade",
                     "completed" if grade_result.get("ok") else "skipped",
