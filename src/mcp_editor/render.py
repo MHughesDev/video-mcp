@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
 from .config import output_dir
 from .diagnostics import DiagnosticIssue, McpEditorError, command_failed
+from .effects import build_clip_af, build_clip_vf, source_read_duration
 from .media import probe_media, require_binary
 from .projects import project_dir
 from .schemas import PLATFORM_DIMENSIONS, Platform, RenderCommand, RenderManifest, TimelinePlan, as_path
@@ -17,17 +19,27 @@ RENDER_PROFILES: dict[str, dict[str, str]] = {
     "high": {"crf": "18", "preset": "slow", "audio_bitrate": "192k"},
 }
 
+# Retry budget for transient FFmpeg failures (e.g. file-lock on Windows, NFS hiccup).
+_MAX_RETRIES = 2
+_RETRY_BACKOFF = (1.0, 2.0)  # seconds between attempt 1→2 and 2→3
 
-def _platform_filter(platform: Platform) -> str:
-    width, height = PLATFORM_DIMENSIONS[platform]
-    return f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"
 
+def _run_command(stage: str, cmd: list[str], max_retries: int = _MAX_RETRIES) -> dict[str, Any]:
+    """Run an FFmpeg command, retrying on CalledProcessError with exponential backoff.
 
-def _run_command(stage: str, cmd: list[str]) -> None:
-    try:
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
-    except subprocess.CalledProcessError as exc:
-        raise command_failed(stage, cmd, exc) from exc
+    Returns a timing record dict.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        t0 = time.monotonic()
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return {"stage": stage, "attempt": attempt + 1, "elapsed_s": round(time.monotonic() - t0, 3), "ok": True}
+        except subprocess.CalledProcessError as exc:
+            last_exc = exc
+            if attempt < max_retries:
+                time.sleep(_RETRY_BACKOFF[min(attempt, len(_RETRY_BACKOFF) - 1)])
+    raise command_failed(stage, cmd, last_exc)  # type: ignore[arg-type]
 
 
 def _profile(render_profile: str) -> dict[str, str]:
@@ -49,7 +61,11 @@ def plan_render_timeline(
 
     project_work_dir = project_dir(plan.project_id) / "segments" / plan.platform.value.replace(":", "x")
     width, height = PLATFORM_DIMENSIONS[plan.platform]
-    output = Path(output_path) if output_path else output_dir() / f"{plan.project_id}_{plan.platform.value.replace(':', 'x')}.mp4"
+    output = (
+        Path(output_path)
+        if output_path
+        else output_dir() / f"{plan.project_id}_{plan.platform.value.replace(':', 'x')}.mp4"
+    )
     concat_file = project_work_dir / "concat.txt"
     commands: list[RenderCommand] = []
     segment_paths: list[str] = []
@@ -77,51 +93,37 @@ def plan_render_timeline(
                 )
 
         segment = project_work_dir / f"segment_{index:04d}.mp4"
+        read_duration = source_read_duration(clip)
         cmd = [
-            ffmpeg_binary,
-            "-y",
-            "-ss",
-            str(max(0, clip.start)),
-            "-t",
-            str(max(0.1, clip.duration)),
-            "-i",
-            str(source),
-            "-map",
-            "0:v:0",
+            ffmpeg_binary, "-y",
+            "-ss", str(max(0, clip.start)),
+            "-t", str(max(0.1, read_duration)),
+            "-i", str(source),
+            "-map", "0:v:0",
         ]
+        extra_af = build_clip_af(clip)
         if has_audio:
-            cmd += ["-map", "0:a:0?", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", profile["audio_bitrate"]]
+            af_chain = ",".join(["aresample=async=1"] + extra_af)
+            cmd += ["-map", "0:a:0?", "-af", af_chain, "-c:a", "aac", "-b:a", profile["audio_bitrate"]]
         else:
             cmd += ["-an"]
         cmd += [
-            "-vf",
-            _platform_filter(plan.platform),
-            "-r",
-            "30",
-            "-c:v",
-            "libx264",
-            "-preset",
-            profile["preset"],
-            "-crf",
-            profile["crf"],
-            "-pix_fmt",
-            "yuv420p",
+            "-vf", build_clip_vf(clip, plan.platform),
+            "-r", "30",
+            "-c:v", "libx264",
+            "-preset", profile["preset"],
+            "-crf", profile["crf"],
+            "-pix_fmt", "yuv420p",
             str(segment),
         ]
         commands.append(RenderCommand(stage=f"render_segment_{index}", command=cmd, output_path=str(segment)))
         segment_paths.append(str(segment))
 
     concat_cmd = [
-        ffmpeg_binary,
-        "-y",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        str(concat_file),
-        "-c",
-        "copy",
+        ffmpeg_binary, "-y",
+        "-f", "concat", "-safe", "0",
+        "-i", str(concat_file),
+        "-c", "copy",
         str(output),
     ]
     commands.append(RenderCommand(stage="concat_segments", command=concat_cmd, output_path=str(output)))
@@ -141,33 +143,39 @@ def plan_render_timeline(
 
 
 def write_render_manifest(manifest: RenderManifest, path: str | Path | None = None) -> Path:
-    output = Path(path) if path else project_dir(manifest.project_id) / f"render_{manifest.platform.value.replace(':', 'x')}.json"
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
-    return output
+    dest = (
+        Path(path)
+        if path
+        else project_dir(manifest.project_id) / f"render_{manifest.platform.value.replace(':', 'x')}.json"
+    )
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+    return dest
 
 
-def execute_render_manifest(manifest: RenderManifest) -> Path:
+def execute_render_manifest(manifest: RenderManifest) -> tuple[Path, list[dict[str, Any]]]:
+    """Execute all render commands and return (output_path, timing_records)."""
     work_dir = Path(manifest.work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     if manifest.concat_file:
         concat_path = Path(manifest.concat_file)
         concat_path.parent.mkdir(parents=True, exist_ok=True)
         concat_path.write_text(
-            "\n".join(f"file '{Path(path).as_posix()}'" for path in manifest.segment_paths),
+            "\n".join(f"file '{Path(p).as_posix()}'" for p in manifest.segment_paths),
             encoding="utf-8",
         )
 
+    timing: list[dict[str, Any]] = []
     for command in manifest.commands:
-        _run_command(command.stage, command.command)
+        record = _run_command(command.stage, command.command)
+        timing.append(record)
 
     output = Path(manifest.output_path)
-
     if not output.exists():
         raise RuntimeError("render command completed without producing output")
     if manifest.dimensions[0] <= 0 or manifest.dimensions[1] <= 0:
         raise RuntimeError("invalid platform dimensions")
-    return output
+    return output, timing
 
 
 def render_timeline(
@@ -188,7 +196,8 @@ def render_timeline(
     if dry_run:
         write_render_manifest(manifest)
         return manifest
-    output = execute_render_manifest(manifest)
+    output, timing = execute_render_manifest(manifest)
+    manifest.timing = timing
     write_render_manifest(manifest)
     return output
 
@@ -208,4 +217,5 @@ def render_manifest_summary(manifest: RenderManifest) -> dict[str, Any]:
         "commands": [command.model_dump() for command in manifest.commands],
         "segment_paths": manifest.segment_paths,
         "concat_file": manifest.concat_file,
+        "timing": getattr(manifest, "timing", []),
     }

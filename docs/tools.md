@@ -544,22 +544,170 @@ Parameters:
 - `render_profile`: `preview`, `standard`, or `high`. Defaults to `preview`.
 - `dry_run`: when `true`, plans render commands without executing FFmpeg.
 
-Workflow:
+Additional parameters (Phase 9):
 
-1. Scan assets.
-2. Create a project manifest.
-3. Optionally analyze music beats.
-4. Create OTIO timelines, using beat-synced edit planning when music analysis succeeds.
-5. Optionally render or dry-run platform outputs.
-6. Validate rendered outputs when rendering actually runs.
-7. Return a delivery manifest summary.
+- `style`: explicit pacing style override (`trailer`, `social`, `documentary`, `fast`, `slow`, `medium`). Inferred from prompt keywords when omitted.
+- `grade`: explicit grading preset override (`cinematic`, `vivid`, `flat`, `bw`, `warm`, `cool`). Inferred from prompt keywords when omitted.
+
+Workflow (Phase 9 — full pipeline):
+
+1. Scan assets and create project manifest.
+2. Probe footage metadata (best-effort, never fatal).
+3. Analyze music beats if `music_path` provided.
+4. Build beat-synced or simple timeline per platform.
+5. Apply grading preset inferred or specified.
+6. Render platform variants.
+7. Export OTIO timelines.
+8. Run `validate_delivery_package` full gate.
+9. Return delivery manifest with events trace.
 
 Returns:
 
 - `ok`
-- `project_id`
-- `manifest_path`
-- `events`
+- `project_id`, `project_name`, `manifest_path`
+- `inferred_style`, `inferred_grade`
+- `footage_analyzed` — count of probed clips
+- `events` — per-stage trace with status and details
 - `beat_report`
-- `timelines`
-- `outputs`
+- `timelines` — platform → OTIO path
+- `outputs` — platform → rendered output
+- `delivery` — delivery validation summary
+
+---
+
+## Phase 6: Effects Engine
+
+### `apply_speed_ramp`
+
+Apply a playback speed multiplier to a clip. `speed > 1` plays faster (shorter output); `speed < 1` plays slower (longer output). Adjusts source read duration and chains `atempo` audio filters correctly.
+
+Parameters: `project_id`, `speed`, `platform` (default `16:9`), `clip_id` or `index`.
+
+### `apply_zoom_punch`
+
+Scale a clip up and crop back to frame size for a punch-zoom effect. `zoom` is a multiplier > 1.0 (e.g. `1.2` = 20% in).
+
+Parameters: `project_id`, `zoom` (default `1.2`), `platform`, `clip_id` or `index`.
+
+### `apply_smash_cut`
+
+Remove any transition between two adjacent clips, replacing it with a hard cut.
+
+Parameters: `project_id`, `from_clip_id`, `to_clip_id`, `platform`.
+
+### `apply_reframe`
+
+Crop a clip with a centre offset to reframe the shot for a different platform aspect ratio. `x_pct`/`y_pct` shift the crop window; `crop_pct` controls the crop size (0.5–1.0).
+
+Parameters: `project_id`, `x_pct`, `y_pct`, `crop_pct` (default `0.9`), `platform`, `clip_id` or `index`.
+
+### `apply_motion_effects`
+
+Apply multiple named effects to a single clip in one call. Each entry in `effects` needs `effect_type` plus any effect-specific params.
+
+Supported `effect_type` values: `speed_ramp`, `zoom_punch`, `reframe`, `motion_blur`, `grade`.
+
+Parameters: `project_id`, `effects` (list of dicts), `platform`, `clip_id` or `index`.
+
+### `remove_clip_effect`
+
+Remove one effect type from a clip by name.
+
+Parameters: `project_id`, `effect_type`, `platform`, `clip_id` or `index`.
+
+---
+
+## Phase 7: Color Grading & LUTs
+
+### `list_luts`
+
+Return all `.cube` LUT files found in `data/luts/`.
+
+### `inspect_lut`
+
+Parse a `.cube` file header and return metadata: size, type (1D/3D), domain min/max, title, data line count.
+
+Parameters: `name_or_path` — LUT name (with or without `.cube` extension) or absolute path.
+
+### `apply_lut`
+
+Apply a `.cube` LUT grade to a clip (or all clips if no `clip_id`/`index` given). The LUT is stored as a `grade` effect on the clip and baked in at render time via `lut3d` FFmpeg filter.
+
+Parameters: `project_id`, `lut_name`, `platform`, `clip_id` or `index`.
+
+### `list_grading_presets`
+
+Return all built-in grading presets with their parameters and descriptions.
+
+Built-in presets: `cinematic`, `vivid`, `flat`, `bw`, `warm`, `cool`.
+
+### `apply_grading_preset`
+
+Apply a named grading preset to a clip or all clips. Presets control `contrast`, `saturation`, `gamma`, `brightness`, and `vignette` via the FFmpeg `eq` and `vignette` filters.
+
+Parameters: `project_id`, `preset`, `platform`, `clip_id` or `index`.
+
+### `render_with_grade`
+
+Render a timeline with all grading effects baked into the FFmpeg filter chain. Equivalent to `render_project` but explicitly documents that grades are included.
+
+Parameters: `project_id`, `platform`, `render_profile`, `dry_run`.
+
+---
+
+## Phase 8: Self-Validation Gate
+
+### `validate_output`
+
+Comprehensive validation of a single rendered video file.
+
+Checks: `exists`, `probe_ok`, `has_video`, `resolution_matches`, `fps_correct`, `duration_close`, `not_black` (blackdetect), `not_silent` (silencedetect), `not_frozen` (freezedetect). FFmpeg advanced checks skip gracefully when the binary is unavailable.
+
+Parameters: `path`, `platform`, `expected_duration`, `expected_fps` (default `30.0`), `check_black`, `check_silent`, `check_frozen`.
+
+### `validate_audio`
+
+Audio-focused validation: stream existence, codec, duration accuracy, silence detection.
+
+Parameters: `path`, `expected_duration`.
+
+### `validate_platform_outputs`
+
+Validate all rendered platform outputs in a project manifest against their expected specs.
+
+Parameters: `project_id`.
+
+Returns per-platform `validate_output` results.
+
+### `validate_delivery_package`
+
+Full delivery gate. Checks:
+
+- All declared platforms have rendered outputs.
+- OTIO files exist for all timelines.
+- Every rendered output passes `validate_output`.
+- Manifest has a name and scanned assets.
+
+Parameters: `project_id`.
+
+---
+
+## Phase 9 / 10: Workflow & Observability
+
+### `get_workflow_status`
+
+Return a pipeline-stage checklist for a project showing which stages are complete and what the next recommended action is.
+
+Stages checked: `project_created`, `assets_scanned`, `timelines_built`, `otio_exported`, `rendered`, `all_platforms_rendered`, `outputs_valid`.
+
+Returns `ok`, `stages`, `next_step`, asset/timeline/output counts, and OTIO/output paths.
+
+Parameters: `project_id`.
+
+### `get_project_logs`
+
+Return structured log records for a project across all sessions.
+
+Returns: `total_records`, `error_count`, `warning_count`, `session_count`, `recent_errors` (last 5), `recent_records` (last 20).
+
+Parameters: `project_id`.

@@ -6,6 +6,19 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from .beat_sync import analyze_beats as analyze_beats_impl
+from .effects import apply_motion_effects as apply_motion_effects_impl
+from .grading import apply_grading_preset as apply_grading_preset_impl
+from .logging import get_project_log_summary
+from .grading import apply_lut as apply_lut_impl
+from .grading import inspect_lut as inspect_lut_impl
+from .grading import list_grading_presets as list_grading_presets_impl
+from .grading import list_luts as list_luts_impl
+from .grading import render_with_grade as render_with_grade_impl
+from .effects import apply_reframe as apply_reframe_impl
+from .effects import apply_smash_cut as apply_smash_cut_impl
+from .effects import apply_speed_ramp as apply_speed_ramp_impl
+from .effects import apply_zoom_punch as apply_zoom_punch_impl
+from .effects import remove_clip_effect as remove_clip_effect_impl
 from .beat_sync import apply_edit_plan as apply_edit_plan_impl
 from .beat_sync import plan_beat_synced_edit as plan_beat_synced_edit_impl
 from .beat_sync import suggest_cut_points as suggest_cut_points_impl
@@ -29,11 +42,15 @@ from .timeline_ops import move_clip_in_project
 from .timeline_ops import split_clip_in_project
 from .timeline_ops import trim_clip_in_project
 from .timeline_ops import validate_timeline_for_project
+from .validation import validate_audio as validate_audio_impl
+from .validation import validate_delivery_package as validate_delivery_package_impl
+from .validation import validate_platform_outputs as validate_platform_outputs_impl
 from .validation import validate_render as validate_render_impl
 from .workflow import (
     build_timeline_for_project,
     create_project as create_project_impl,
     edit_video_from_prompt as edit_video_from_prompt_impl,
+    get_workflow_status as get_workflow_status_impl,
     render_all_variants as render_all_variants_impl,
     render_and_validate_project,
     render_platform_variant as render_platform_variant_impl,
@@ -424,10 +441,53 @@ def render_all_variants(
 
 
 @app.tool()
-def validate_output(path: str, platform: str = "16:9", expected_duration: float | None = None) -> dict[str, object]:
-    """Validate a rendered video file."""
+def validate_output(
+    path: str,
+    platform: str = "16:9",
+    expected_duration: float | None = None,
+    expected_fps: float = 30.0,
+    check_black: bool = True,
+    check_silent: bool = True,
+    check_frozen: bool = True,
+) -> dict[str, object]:
+    """Validate a rendered video file with comprehensive checks (resolution, FPS, black frames, silence, freezes)."""
     try:
-        return validate_render_impl(path, Platform(platform), expected_duration=expected_duration)
+        return validate_render_impl(
+            path,
+            Platform(platform),
+            expected_duration=expected_duration,
+            expected_fps=expected_fps,
+            check_black=check_black,
+            check_silent=check_silent,
+            check_frozen=check_frozen,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def validate_audio(path: str, expected_duration: float | None = None) -> dict[str, object]:
+    """Validate the audio track of a rendered file (existence, codec, silence detection)."""
+    try:
+        return validate_audio_impl(path, expected_duration=expected_duration)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def validate_platform_outputs(project_id: str) -> dict[str, object]:
+    """Validate all rendered platform outputs for a project against their expected specs."""
+    try:
+        return validate_platform_outputs_impl(project_id)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def validate_delivery_package(project_id: str) -> dict[str, object]:
+    """Full delivery gate: validate renders, OTIO exports, and manifest completeness."""
+    try:
+        return validate_delivery_package_impl(project_id)
     except Exception as exc:
         return _error(exc)
 
@@ -440,11 +500,18 @@ def edit_video_from_prompt(
     music_path: str | None = None,
     platforms: list[str] | None = None,
     target_duration: float = 30,
+    style: str | None = None,
+    grade: str | None = None,
     render: bool = True,
     render_profile: str = "preview",
     dry_run: bool = False,
 ) -> dict[str, object]:
-    """Run the MVP end-to-end edit workflow from a natural language request."""
+    """
+    Full autonomous edit pipeline from a natural language prompt.
+    Infers pacing style and grading preset from prompt keywords.
+    Steps: scan → probe footage → analyze music → build edit plan →
+    apply grade → render variants → export OTIO → validate delivery.
+    """
     try:
         return edit_video_from_prompt_impl(
             prompt=prompt,
@@ -453,7 +520,243 @@ def edit_video_from_prompt(
             music_path=music_path,
             platforms=_platforms(platforms),
             target_duration=target_duration,
+            style=style,
+            grade=grade,
             render=render,
+            render_profile=render_profile,
+            dry_run=dry_run,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def get_project_logs(project_id: str) -> dict[str, object]:
+    """Return structured log records for a project (errors, warnings, render timings)."""
+    try:
+        return get_project_log_summary(project_id)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def get_workflow_status(project_id: str) -> dict[str, object]:
+    """Return a pipeline-stage checklist showing what's done and what's next for a project."""
+    try:
+        return get_workflow_status_impl(project_id)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_speed_ramp(
+    project_id: str,
+    speed: float,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a speed ramp to a clip. speed > 1 is faster, speed < 1 is slower."""
+    try:
+        return apply_speed_ramp_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            speed=speed,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_zoom_punch(
+    project_id: str,
+    zoom: float = 1.2,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a punch zoom to a clip. zoom is a scale multiplier > 1.0 (e.g. 1.2 = 20% in)."""
+    try:
+        return apply_zoom_punch_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            zoom=zoom,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_smash_cut(
+    project_id: str,
+    from_clip_id: str,
+    to_clip_id: str,
+    platform: str = "16:9",
+) -> dict[str, object]:
+    """Remove any transition between two adjacent clips, making it a hard cut."""
+    try:
+        return apply_smash_cut_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            from_clip_id=from_clip_id,
+            to_clip_id=to_clip_id,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_reframe(
+    project_id: str,
+    x_pct: float = 0.0,
+    y_pct: float = 0.0,
+    crop_pct: float = 0.9,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Reframe a clip by cropping with a center offset. x_pct/y_pct shift the crop window."""
+    try:
+        return apply_reframe_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            x_pct=x_pct,
+            y_pct=y_pct,
+            crop_pct=crop_pct,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_motion_effects(
+    project_id: str,
+    effects: list[dict],
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply multiple effects to a single clip in one call. Each effect needs effect_type and params."""
+    try:
+        return apply_motion_effects_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            effects=effects,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def remove_clip_effect(
+    project_id: str,
+    effect_type: str,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Remove a specific effect from a clip by effect_type."""
+    try:
+        return remove_clip_effect_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            effect_type=effect_type,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def list_luts() -> dict[str, object]:
+    """List all .cube LUT files available in data/luts/."""
+    try:
+        return list_luts_impl()
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def inspect_lut(name_or_path: str) -> dict[str, object]:
+    """Inspect a .cube LUT file and return its metadata (size, type, domain)."""
+    try:
+        return inspect_lut_impl(name_or_path)
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_lut(
+    project_id: str,
+    lut_name: str,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a .cube LUT grade to a clip (or all clips if no clip_id/index given)."""
+    try:
+        return apply_lut_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            lut_name=lut_name,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def list_grading_presets() -> dict[str, object]:
+    """List built-in grading presets (cinematic, vivid, flat, bw, warm, cool)."""
+    try:
+        return list_grading_presets_impl()
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def apply_grading_preset(
+    project_id: str,
+    preset: str,
+    platform: str = "16:9",
+    clip_id: str | None = None,
+    index: int | None = None,
+) -> dict[str, object]:
+    """Apply a named grading preset to a clip or all clips in a timeline."""
+    try:
+        return apply_grading_preset_impl(
+            project_id=project_id,
+            platform=Platform(platform),
+            preset=preset,
+            clip_id=clip_id,
+            index=index,
+        )
+    except Exception as exc:
+        return _error(exc)
+
+
+@app.tool()
+def render_with_grade(
+    project_id: str,
+    platform: str = "16:9",
+    render_profile: str = "preview",
+    dry_run: bool = False,
+) -> dict[str, object]:
+    """Render a timeline with all grading effects baked into the FFmpeg filter chain."""
+    try:
+        return render_with_grade_impl(
+            project_id=project_id,
+            platform=Platform(platform),
             render_profile=render_profile,
             dry_run=dry_run,
         )

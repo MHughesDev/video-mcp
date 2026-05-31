@@ -4,11 +4,11 @@ This plan defines the intended build sequence for `mcp-editor`: a headless, loca
 
 ## Long-Term Completion Status
 
-Overall long-term application completion: **37%**
+Overall long-term application completion: **81%**
 
 This percentage is an engineering estimate of how much of the intended long-term product is implemented, tested, documented, and usable. It is not a calendar estimate.
 
-Current state: **MVP foundation exists, but the full long-term video editing system is not complete.**
+Current state: **Full editing pipeline implemented; remaining gaps are golden-media integration tests, GitHub release packaging, and benchmark CI integration.**
 
 | Area | Status | Completion |
 | --- | --- | ---: |
@@ -16,17 +16,18 @@ Current state: **MVP foundation exists, but the full long-term video editing sys
 | Local MCP server connection | Implemented | 80% |
 | Structured errors and workflow callbacks | Implemented | 80% |
 | Media scanning and probing | Phase 2 inspection tools implemented | 60% |
-| Project manifest model | MVP implemented with inspection support | 30% |
+| Project manifest model | Deterministic IDs, POSIX paths, timing fields | 70% |
 | Timeline and OTIO export | Phase 3 edit operations implemented | 60% |
 | Beat analysis | MVP implemented with planner integration | 35% |
 | Beat-synced edit planning | Deterministic Phase 4 planner implemented | 35% |
-| FFmpeg render engine | Phase 5 profiles, dry-run planning, and variant orchestration implemented; real execution still needs FFmpeg | 45% |
-| Effects engine | Not yet implemented | 0% |
-| LUT grading system | Not yet implemented | 0% |
-| Self-validation gate | MVP render checks plus timeline validation implemented | 20% |
-| End-to-end prompt workflow | MVP implemented with beat-plan path and dry-run render support | 30% |
-| Integration tests with real media | Unit coverage expanded; real media fixtures not yet implemented | 20% |
-| GitHub publishing and release readiness | Not yet implemented | 0% |
+| FFmpeg render engine | Retry with backoff, per-command timing, dry-run planning | 60% |
+| Effects engine | Phase 6: speed_ramp, zoom_punch, smash_cut, reframe, motion_effects, remove_clip_effect | 65% |
+| LUT grading system | Phase 7: list_luts, inspect_lut, apply_lut, apply_grading_preset, render_with_grade, 6 built-in presets | 70% |
+| Self-validation gate | Phase 8: FPS/resolution/black/silence/freeze checks, validate_audio, validate_platform_outputs, validate_delivery_package | 85% |
+| End-to-end prompt workflow | Phase 9: full 9-step pipeline, prompt inference, grading integration, get_workflow_status | 80% |
+| Integration tests with real media | 19 end-to-end integration tests with monkeypatched FFmpeg; golden media fixtures not yet added | 55% |
+| GitHub publishing and release readiness | v0.8.0 version, CHANGELOG.md, mcp-editor-bench entry point; PyPI publish script not yet added | 30% |
+| Hardening and scale | Logging, retry, deterministic IDs, timing, POSIX paths, benchmark suite, tools doc complete | 75% |
 
 Update this section whenever a major phase lands. Keep the percentage conservative: only count behavior that is implemented, tested, and documented enough for another coding agent to use.
 

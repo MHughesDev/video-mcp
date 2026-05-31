@@ -1,8 +1,10 @@
-# Connecting mcp-editor To Coding Agents
+# Connecting mcp-editor to AI Coding Agents
 
-`mcp-editor` runs as a local MCP server. The recommended MVP connection mode is stdio because it works well for Cursor, Claude Desktop, and other custom MCP clients.
+`mcp-editor` runs as a local MCP server. The recommended connection mode is **stdio** — it works with Claude Desktop, Claude Code, Cursor, and any other MCP-compatible client.
 
-## Install Locally
+---
+
+## Install
 
 From the repository root:
 
@@ -11,61 +13,108 @@ uv venv --python 3.11 .venv
 uv pip install -e ".[dev]"
 ```
 
-FFmpeg must also be installed and available on `PATH`.
+FFmpeg must also be on `PATH` — see [README.md](../README.md) for install instructions.
 
-Windows:
-
-```powershell
-winget install Gyan.FFmpeg
-```
-
-macOS:
+Verify everything is ready:
 
 ```bash
-brew install ffmpeg
+./scripts/verify.sh
 ```
 
-Ubuntu/Debian:
+---
 
-```bash
-sudo apt install ffmpeg
-```
+## Claude Desktop
 
-## Cursor MCP Configuration
-
-Use the absolute path to this repository as `MCP_EDITOR_ROOT`.
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
   "mcpServers": {
     "mcp-editor": {
-      "command": "C:\\Users\\Mason\\Desktop\\coding_projects\\video-mcp\\mcp-editor\\.venv\\Scripts\\mcp-editor.exe",
+      "command": "/absolute/path/to/video-mcp/.venv/bin/mcp-editor",
       "args": ["--transport", "stdio"],
       "env": {
-        "MCP_EDITOR_ROOT": "C:\\Users\\Mason\\Desktop\\coding_projects\\video-mcp\\mcp-editor"
+        "MCP_EDITOR_ROOT": "/absolute/path/to/video-mcp"
       }
     }
   }
 }
 ```
 
-If your client launches Python directly instead of console scripts:
+**Windows:**
 
 ```json
 {
   "mcpServers": {
     "mcp-editor": {
-      "command": "C:\\Users\\Mason\\Desktop\\coding_projects\\video-mcp\\mcp-editor\\.venv\\Scripts\\python.exe",
-      "args": ["-m", "mcp_editor.server", "--transport", "stdio"],
+      "command": "C:\\path\\to\\video-mcp\\.venv\\Scripts\\mcp-editor.exe",
+      "args": ["--transport", "stdio"],
       "env": {
-        "MCP_EDITOR_ROOT": "C:\\Users\\Mason\\Desktop\\coding_projects\\video-mcp\\mcp-editor"
+        "MCP_EDITOR_ROOT": "C:\\path\\to\\video-mcp"
       }
     }
   }
 }
 ```
 
-## HTTP Mode
+---
+
+## Cursor
+
+Create or edit `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "mcp-editor": {
+      "command": "/absolute/path/to/video-mcp/.venv/bin/mcp-editor",
+      "args": ["--transport", "stdio"],
+      "env": {
+        "MCP_EDITOR_ROOT": "/absolute/path/to/video-mcp"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Claude Code (CLI)
+
+Add to your project's `.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "mcp-editor": {
+      "command": "/absolute/path/to/video-mcp/.venv/bin/mcp-editor",
+      "args": ["--transport", "stdio"],
+      "env": {
+        "MCP_EDITOR_ROOT": "/absolute/path/to/video-mcp"
+      }
+    }
+  }
+}
+```
+
+Or use the global settings at `~/.claude/settings.json` to make it available in every project.
+
+---
+
+## If the console script isn't on PATH
+
+Use Python directly:
+
+```json
+{
+  "command": "/absolute/path/to/video-mcp/.venv/bin/python",
+  "args": ["-m", "mcp_editor.server", "--transport", "stdio"]
+}
+```
+
+---
+
+## HTTP mode
 
 For clients that support streamable HTTP:
 
@@ -75,38 +124,30 @@ mcp-editor --transport streamable-http --host 127.0.0.1 --port 8000
 
 The MCP endpoint is:
 
-```text
+```
 http://127.0.0.1:8000/mcp
 ```
 
-## MVP Tool Surface
+---
 
-- `scan_assets`
-- `scan_project_assets`
-- `probe_media`
-- `analyze_video_metadata`
-- `analyze_audio_metadata`
-- `detect_scenes`
-- `generate_thumbnails`
-- `inspect_project`
-- `create_project`
-- `analyze_beats`
-- `suggest_cut_points`
-- `plan_beat_synced_edit`
-- `apply_edit_plan`
-- `create_timeline`
-- `add_clip`
-- `trim_clip`
-- `split_clip`
-- `move_clip`
-- `add_transition`
-- `export_timeline`
-- `validate_timeline`
-- `plan_render`
-- `render_project`
-- `render_platform_variant`
-- `render_all_variants`
-- `validate_output`
-- `edit_video_from_prompt`
+## MCP_EDITOR_ROOT
 
-The first MVP is deterministic. The natural language prompt is stored in the manifest, while the calling agent remains responsible for creative interpretation.
+This environment variable tells the server where to find `data/`. If not set, the server walks up from the current working directory looking for a folder that contains both `data/` and `pyproject.toml`.
+
+Set it to the absolute path of your cloned `video-mcp` directory and it will always resolve correctly regardless of where your agent's working directory is.
+
+---
+
+## Trying it out quickly
+
+Once connected, ask your agent:
+
+> "Scan my footage in data/input and tell me what you find."
+
+The agent will call `scan_project_assets` and return metadata for every video file it finds.
+
+To run the full pipeline:
+
+> "Make a 30-second cinematic edit from the footage in data/input using the music in data/music. Render a 16:9 preview and validate the output."
+
+The agent will call `edit_video_from_prompt` and walk through all 9 pipeline steps.
