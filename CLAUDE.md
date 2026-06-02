@@ -14,7 +14,7 @@ This file defines how AI coding agents (Claude Code, Cursor, etc.) should work i
 
 ```
 src/mcp_editor/       ← all server source code
-  server.py           ← FastMCP app, all 44 @app.tool registrations
+  server.py           ← FastMCP app, all 53 @app.tool registrations
   workflow.py         ← edit_video_from_prompt and project lifecycle
   effects.py          ← FFmpeg filter builders for clip effects
   grading.py          ← LUT and grading preset application
@@ -33,9 +33,9 @@ src/mcp_editor/       ← all server source code
 tests/unit/           ← unit tests (no FFmpeg required)
 tests/integration/    ← end-to-end tests (FFmpeg monkeypatched)
 docs/
-  tools.md            ← full tool reference (44 tools)
+  tools.md            ← full tool reference (53 tools)
   architecture.md     ← design decisions
-  implementation-plan.md ← phase-by-phase plan and completion status
+  plan/               ← long-term plan: MASTER_PLAN.md + phase-01..13 files
 scripts/
   setup.sh            ← install dependencies
   verify.sh           ← check all requirements
@@ -56,7 +56,7 @@ data/
 2. Import it in `server.py` and decorate with `@app.tool()`.
 3. Write unit tests in `tests/unit/`.
 4. Update `docs/tools.md` with the parameter list and return shape.
-5. Update the completion table in `docs/implementation-plan.md`.
+5. Update the relevant `docs/plan/phase-NN-*.md` file and the status table in `docs/plan/MASTER_PLAN.md`.
 
 Keep the tool registration thin — validate inputs, call the impl function, return `_error(exc)` on failure. Business logic belongs in the impl module.
 
