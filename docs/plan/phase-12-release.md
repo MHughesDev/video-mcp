@@ -69,6 +69,12 @@ This phase delivers **infrastructure**, not MCP tools.
    release workflow runs end-to-end. **Status: Not Started.**
 9. **README/install docs** — update once published.
    Done-when: `README.md` documents `pip install mcp-editor`. **Status: Not Started.**
+10. **Repo-artifact hygiene** — *new work*.
+    Done-when: no personal data (e.g. contributor email addresses) or secrets are
+    committed in repo artifacts (docs, handoff files, manifests), and a
+    pre-publish check confirms the built sdist/wheel ships only intended files.
+    Motivated by a handoff doc that committed a personal email into the repo.
+    **Status: Not Started.**
 
 ## Test Coverage Requirements
 - CI itself is the deliverable; its "tests" are the existing suites plus the
@@ -81,6 +87,9 @@ This phase delivers **infrastructure**, not MCP tools.
   `mcp-editor` is registered on PyPI and the GitHub environment `pypi` is
   configured with OIDC trusted publishing. The first `v0.8.0` tag push will
   complete MVP criterion 9.
+- **Repo-artifact hygiene unverified** — a generated handoff doc committed a
+  personal email into the repo; there is no check that artifacts/built
+  distributions are free of PII or secrets. Tracked as task 10.
 - **README** — install instructions still say "from source"; needs a single
   `pip install mcp-editor` line once the package is live on PyPI.
 

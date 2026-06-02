@@ -87,11 +87,19 @@ but **not MVP-verified**. Those are the true gates.
 | 11 | Integration Testing (real media) | In Progress | 90% | Verify the pipeline against real FFmpeg + golden media |
 | 12 | Release & CI/CD | In Progress | 70% | `pip install`-able, CI-gated, tagged releases |
 | 13 | Media Intelligence & Sourcing | In Progress | 70% | Asset acquisition, reference library, media comprehension docs |
+| 14 | Tool Production-Readiness & API Contract | Not Started | 0% | Certify all 53 tools are safe, honest, and accurately documented |
 
 > Phases 11, 12, and 13 did not exist as named phases in the original
 > `implementation-plan.md`. They are promoted here because each is a distinct,
 > substantial body of work that the MVP depends on. Phase 13 in particular
 > covers the single largest module in the codebase (`media_docs.py`, 622 LOC).
+>
+> Phase 14 was added after a documentation/contract drift was caught in practice
+> (a generated tool inventory listed tools that do not exist and omitted real
+> ones). It is the gate between a *feature-complete MVP* and a *fully provisioned
+> release*: every tool certified for error handling, input validation, return
+> contract, and accurate documentation, with an automated guard against future
+> drift. It adds no editing features — it makes the interface trustworthy.
 
 ---
 
@@ -118,8 +126,12 @@ Plain-language rules:
 - **P11 (Integration tests) gates the MVP** — it cannot start until Render (P5),
   Validation (P8), and Workflow (P9) exist, and it is what proves the pipeline
   actually works on real media.
-- **P12 (Release) is last** — never ship before P11 proves the pipeline and P10
-  hardening is in place.
+- **P12 (Release) is last for MVP** — never ship before P11 proves the pipeline
+  and P10 hardening is in place.
+- **P14 (Tool certification) gates "fully provisioned"** — it is cross-cutting
+  over P2–P13 and is what separates a feature-complete MVP from a release where
+  every tool is certified safe, honest, and accurately documented. Its automated
+  contract-drift guard runs in P12's CI.
 
 ---
 
@@ -155,16 +167,34 @@ Plain-language rules:
   items. Project can only be installed from source today.
 - **No shipped LUTs was resolved:** 6 creative `.cube` LUTs now ship in
   `data/luts/`. `apply_lut` has assets out of the box.
-- **Beat sync depth (P4):** works on steady tempo; variable-tempo handling is
-  undocumented. Beat-BPM test written for CI verification.
 - **Beat sync depth (P4):** works on steady tempo; variable-tempo and
-  ambient/orchestral tracks are unhandled.
+  ambient/orchestral tracks are unhandled. A beat-BPM test is written for CI
+  verification.
 - **Large-file / 4K handling (P5, P10):** untested above 1080p; no streaming or
   checkpoint-resume render.
-- **No shipped LUTs:** `data/luts/` is empty, so `apply_lut` has nothing to load
-  out of the box.
 - **Cross-platform CI:** POSIX path normalization is implemented but never
   exercised on Windows/macOS in CI.
+
+## What Separates "Fully Provisioned" From MVP
+
+The MVP gates above prove the pipeline *works end to end*. A **fully provisioned
+release** additionally requires that the *interface* to every tool is
+trustworthy — this is **Phase 14**:
+
+- **Tool contract certification (P14):** all 53 tools verified to catch every
+  exception (`_error(exc)`), validate input, and return an `ok`-bearing dict on
+  both success and failure — with **zero** unhandled exceptions on garbage input.
+- **Docs↔registrations accuracy (P14):** `docs/tools.md` must exactly match the
+  registered `@app.tool` set. This has **drifted in practice** (a generated tool
+  inventory listed 5 phantom tools — `plan_render_timeline`, `render_timeline`,
+  `validate_render`, `remove_clip`, `get_validation_report` — and omitted 5 real
+  ones — `inspect_project`, `validate_platform_outputs`, `validate_output`,
+  `plan_render`, `render_project`).
+- **Contract-drift guard (P14):** an introspection-based CI test that fails if
+  the documented and registered tool sets diverge, so this class of drift cannot
+  recur.
+- **Repo-artifact hygiene (P12 task 10):** no PII/secrets in committed artifacts
+  or built distributions (a handoff doc previously committed a personal email).
 
 ---
 

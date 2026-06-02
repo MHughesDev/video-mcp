@@ -35,7 +35,7 @@ tests/integration/    ← end-to-end tests (FFmpeg monkeypatched)
 docs/
   tools.md            ← full tool reference (53 tools)
   architecture.md     ← design decisions
-  plan/               ← long-term plan: MASTER_PLAN.md + phase-01..13 files
+  plan/               ← long-term plan: MASTER_PLAN.md + phase-01..14 files
 scripts/
   setup.sh            ← install dependencies
   verify.sh           ← check all requirements

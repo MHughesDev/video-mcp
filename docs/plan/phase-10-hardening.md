@@ -61,6 +61,13 @@ ongoing and parallel.
    long timelines. **Status: Not Started.**
 8. **Cross-platform CI** — *handoff to P12*.
    Done-when: suite green on Linux/macOS/Windows. **Status: Not Started.**
+9. **Documentation-accuracy discipline** — *new work; pairs with P14*.
+   Done-when: a cheap, introspection-based check keeps `docs/tools.md` and the
+   plan's tool counts in sync with the registered `@app.tool` set, so they
+   cannot silently drift. The check itself is built and CI-wired in Phase 14
+   (contract-drift guard); this item is the hardening *principle* that no
+   human-maintained tool list is trusted without an automated guard behind it.
+   **Status: Not Started — see Phase 14.**
 
 ## Test Coverage Requirements
 - Unit tests: `test_hardening.py` (**24** — strong) covering error handling,
@@ -79,6 +86,10 @@ ongoing and parallel.
   regression (deferred to P12).
 - **No `mcp-editor-bench` entry point** despite earlier references; benchmarks
   run only via the script path.
+- **No guard against docs/tool drift** — `docs/tools.md` and generated tool
+  summaries have drifted from the real `@app.tool` registrations in practice
+  (phantom and omitted tool names). The fix lives in Phase 14; flagged here as a
+  hardening gap because it is a reliability/contract concern, not a feature.
 
 ## Notes
 - This phase is intentionally cross-cutting; its percentage reflects breadth of
