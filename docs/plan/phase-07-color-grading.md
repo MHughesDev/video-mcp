@@ -1,7 +1,7 @@
 # Phase 7 — Color Grading & LUTs
 
 ## Status
-In Progress — 78%
+In Progress — 90%
 
 ## Goal
 Make color grading a deterministic, reproducible part of the edit pipeline: load
@@ -20,7 +20,7 @@ pipeline order.
 |------|-------------|--------|-------|
 | `list_luts` | List `.cube` files in `data/luts/` | ✓ Done | `grading.py` |
 | `inspect_lut` | Parse `.cube` header/metadata | ✓ Done | Tolerant parser (silently skips bad metadata lines) |
-| `apply_lut` | Apply a `.cube` LUT to clip(s) | ⚠ Partial | Logic done; **no LUTs ship in `data/luts/`** and no real-render verification |
+| `apply_lut` | Apply a `.cube` LUT to clip(s) | ⚠ Partial | Logic done; 6 LUTs ship in `data/luts/`; real-render verification still pending |
 | `list_grading_presets` | List built-in presets + params | ✓ Done | 6 presets |
 | `apply_grading_preset` | Apply a preset (cinematic/vivid/flat/bw/warm/cool) | ✓ Done | Stores grade as a `ClipEffect` |
 | `render_with_grade` | Render with grade effects baked in | ⚠ Partial | Planning done; real render unverified |
@@ -32,8 +32,9 @@ pipeline order.
 - [x] `build_grade_vf()` composes `lut3d` (if a LUT) + `eq` (brightness/contrast/saturation/gamma) + `vignette` in that order.
 - [x] `inspect_lut` parses a `.cube` header without raising on malformed metadata lines.
 - [x] Grade choices persist in the manifest so re-rendering reproduces identical color.
-- [ ] `apply_lut` produces a **correctly color-transformed** frame on real footage with a real `.cube` file. **(blocked on shipping a LUT + P11 golden media)**
-- [ ] Each of the 6 presets produces a visually distinct, intended look on real footage. **(unverified)**
+- [x] 6 creative 17×17×17 `.cube` LUTs ship in `data/luts/` (cinematic, vivid, flat, bw, warm, cool) — `apply_lut` has assets to operate on out of the box.
+- [ ] `apply_lut` produces a **correctly color-transformed** frame on real footage with a real `.cube` file. **(P11 real-media CI job)**
+- [ ] Each of the 6 presets produces a visually distinct, intended look on real footage; `test_grading_preset_changes_output` verifies binary diff. **(P11 real-media CI job)**
 
 ## Implementation Tasks
 
@@ -42,8 +43,8 @@ pipeline order.
    **Status: Done.**
 2. **LUT application** — `apply_lut()`.
    Done-when: stores a grade effect referencing the LUT; `build_grade_vf()`
-   emits `lut3d=<path>`. **Status: Partial — logic done; needs a shipped LUT and
-   real-render proof.**
+   emits `lut3d=<path>`. **Status: Partial — logic done; 6 LUTs now ship in
+   `data/luts/`; real-render proof pending P11 CI.**
 3. **Preset system** — `GRADING_PRESETS` (cinematic, vivid, flat, bw, warm,
    cool), `list_grading_presets()`, `apply_grading_preset()`.
    Done-when: 6 presets defined with eq/vignette params; apply stores a grade

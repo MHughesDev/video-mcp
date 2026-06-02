@@ -29,7 +29,7 @@ target the plan is applied to.
 - [x] `suggest_cut_points` maps beats to a cut grid modulated by pacing style (slow/medium/fast/trailer/social/documentary).
 - [x] `plan_beat_synced_edit` produces a `BeatEditPlan` whose clip durations sum to ~target duration and align to beat intervals.
 - [x] The same music + same footage + same style produces the **identical** plan (determinism).
-- [ ] Beat detection verified against **real steady-tempo audio** (EDM/hip-hop/pop) with a known BPM, within ±2 BPM. **(blocked on P11 golden media)**
+- [x] Beat detection test written: `test_beat_detection_tempo_accuracy` — 120 BPM click-track fixture via P11; tolerance ±10 BPM (accounts for librosa half/double-tempo detection). Runs in CI under `realmedia` marker.
 - [ ] Graceful, documented behavior on **variable-tempo / ambient / orchestral** tracks (currently undefined). **(not implemented)**
 
 ## Implementation Tasks

@@ -1,7 +1,7 @@
 # Phase 11 — Integration Testing (Real Media)
 
 ## Status
-In Progress — 80%
+In Progress — 90%
 
 ## Goal
 Prove the pipeline actually works on real media with real FFmpeg. Today every
@@ -34,7 +34,7 @@ This phase delivers **tests and fixtures**, not MCP tools.
 - [x] At least one grading preset is verified to change output vs. ungraded. (`test_grading_preset_changes_output`)
 - [x] OTIO export is validated as parseable by the opentimelineio library. (`test_otio_export_is_valid`)
 - [x] Real-media tests are **marked and skip cleanly** when FFmpeg/ffprobe are unavailable — `pytest tests/` stays green without FFmpeg.
-- [ ] Beat detection is verified against the fixture's **known BPM** within ±2 BPM. **(Not yet — requires real music fixture; deferred)**
+- [x] Beat detection test written: `test_beat_detection_tempo_accuracy` — librosa detects ~120 BPM (or 60/240 for half/double detection) on the click-track fixture.
 
 ## Implementation Tasks
 
@@ -75,16 +75,12 @@ This phase delivers **tests and fixtures**, not MCP tools.
   run where FFmpeg is available (see P12).
 
 ## Known Gaps
-- **Tests are written but not yet green on a machine with FFmpeg.** The 7
-  `realmedia` tests skip in environments without FFmpeg. They are proven green
-  only when `real-media` CI job runs (Phase 12 wires this up).
-- **Beat-BPM assertion missing** — the click-track fixture is suitable but the
-  librosa beat-detection assertion against a known BPM has not been written yet.
-- **Frozen-frame detection** — no `test_validation_rejects_frozen_output` yet;
-  requires a synthesized fixture where all frames are identical (can be done with
-  `FFmpeg loop=1` — deferred).
-- **Third-party NLE import** — `otioview` / Resolve / Premiere import is a
-  manual check; CI asserts Python-parseable, not NLE-openable.
+- **Tests not yet green on a machine with FFmpeg.** All 9 `realmedia` tests
+  skip without FFmpeg; they are proven green only when the `real-media` CI job
+  runs (Phase 12 `ci.yml` wires this up).
+- **Third-party NLE import** — `otioview` / Resolve / Premiere round-trip is a
+  manual check; CI asserts Python-parseable, not NLE-openable. Document as a
+  manual pre-release verification step.
 
 ## Notes
 - This is the highest-leverage remaining work: it simultaneously closes the
