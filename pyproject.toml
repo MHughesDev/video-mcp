@@ -8,6 +8,22 @@ version = "0.8.0"
 description = "Headless MCP video editing server for local AI agent workflows."
 readme = "README.md"
 requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [
+  {name = "mhughesdev"},
+]
+keywords = ["mcp", "video", "editing", "ffmpeg", "ai", "agent"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Multimedia :: Video",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
 dependencies = [
   "opentimelineio>=0.17",
   "mcp>=1.0",

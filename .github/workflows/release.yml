@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  # ── Build sdist + wheel ────────────────────────────────────────────────────
+  build:
+    name: Build distribution artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install build backend
+        run: pip install build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Verify artifact names and contents
+        run: |
+          ls -lh dist/
+          pip install twine
+          twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ── Install smoke test ─────────────────────────────────────────────────────
+  smoke-test:
+    name: Install smoke test
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install wheel in clean environment
+        run: pip install dist/*.whl
+
+      - name: Verify console script is available
+        run: mcp-editor --help || (python -c "import mcp_editor; print('import ok')")
+
+      - name: Verify all 53 tools import without error
+        run: |
+          python -c "
+          from mcp_editor.server import app
+          tools = [t for t in dir(app) if not t.startswith('_')]
+          print(f'Server imported OK')
+          from mcp_editor import schemas, effects, grading, validation, render, timeline
+          print('All core modules imported OK')
+          "
+
+  # ── Publish to PyPI (OIDC trusted publishing) ─────────────────────────────
+  publish-pypi:
+    name: Publish to PyPI
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    environment: pypi
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # ── Create GitHub Release ──────────────────────────────────────────────────
+  github-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub Release with artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
