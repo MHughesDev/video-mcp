@@ -34,3 +34,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "realmedia: tests that require real FFmpeg and synthesized media fixtures (deselect with -m 'not realmedia')",
+]
