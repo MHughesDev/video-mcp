@@ -62,7 +62,7 @@ but **not MVP-verified**. Those are the true gates.
 
 ## Status Dashboard
 
-**Overall MVP readiness: ~70%**
+**Overall MVP readiness: ~78%**
 **Core editing engine maturity (Phases 1–10): ~76%**
 
 > Methodology: each phase is scored on implemented + tested + documented
@@ -84,8 +84,8 @@ but **not MVP-verified**. Those are the true gates.
 | 8 | Self-Validation Gate | In Progress | 88% | No silent bad exports reach the agent |
 | 9 | End-to-End Agent Workflow | In Progress | 80% | One-shot `edit_video_from_prompt` orchestration |
 | 10 | Hardening & Scale | In Progress | 78% | Logging, retry, determinism, benchmarks for real use |
-| 11 | Integration Testing (real media) | In Progress | 55% | Verify the pipeline against real FFmpeg + golden media |
-| 12 | Release & CI/CD | Not Started | 25% | `pip install`-able, CI-gated, tagged releases |
+| 11 | Integration Testing (real media) | In Progress | 80% | Verify the pipeline against real FFmpeg + golden media |
+| 12 | Release & CI/CD | In Progress | 45% | `pip install`-able, CI-gated, tagged releases |
 | 13 | Media Intelligence & Sourcing | In Progress | 70% | Asset acquisition, reference library, media comprehension docs |
 
 > Phases 11, 12, and 13 did not exist as named phases in the original
@@ -146,11 +146,13 @@ Plain-language rules:
 
 ## What Is Missing For MVP
 
-- **Real-media verification (P11):** every test today monkeypatches FFmpeg. No
-  test has ever rendered a real frame. This is the single biggest MVP risk.
-- **Release / installability (P12):** no `.github/workflows` exist; there is no
-  PyPI publish path and no `mcp-editor-bench` entry point (only `mcp-editor`).
-  The project can only be installed from source.
+- **Real-media tests exist but are CI-pending (P11):** 7 `@pytest.mark.realmedia`
+  tests are written and skip cleanly without FFmpeg. They will be proven green
+  by the `real-media` CI job (P12) once the first CI run completes. Beat-BPM
+  verification and frozen-frame detection still need test cases.
+- **Release / installability (P12):** CI workflow exists (3-OS matrix + real-media
+  job + benchmark); the release workflow (tag → PyPI publish) and install smoke
+  test still need to be built. Project can only be installed from source today.
 - **Beat sync depth (P4):** works on steady tempo; variable-tempo and
   ambient/orchestral tracks are unhandled.
 - **Large-file / 4K handling (P5, P10):** untested above 1080p; no streaming or
